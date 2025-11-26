@@ -1,0 +1,52 @@
+openapi: 3.0.3
+info:
+  title: CV Processor API
+  version: 1.0.0
+  description: API para procesar archivos de CV junto con instrucciones y lenguaje.
+
+paths:
+  /process:
+    post:
+      summary: Procesa un archivo con instrucciones y lenguaje objetivo.
+      description: >
+        Este endpoint recibe un archivo PDF, TXT, DOC o DOCX junto con una cadena de instrucciones
+        y un idioma objetivo. Retorna únicamente una confirmación de solicitud procesada.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Archivo a procesar (pdf, txt, doc, docx)
+                instructions:
+                  type: string
+                  description: Indicaciones para el procesamiento del archivo
+                language:
+                  type: string
+                  description: Idioma solicitado para la salida
+              required:
+                - file
+                - instructions
+                - language
+      responses:
+        '200':
+          description: Solicitud procesada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: processed
+                  message:
+                    type: string
+                    example: La solicitud ha sido procesada correctamente.
+        '400':
+          description: Petición inválida
+        '500':
+          description: Error interno del servidor

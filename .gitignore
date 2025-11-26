@@ -1,0 +1,31 @@
+# Binarios
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Archivos de test
+*.test
+
+# Archivos de cobertura
+*.out
+
+# Dependencias
+vendor/
+
+# Variables de entorno
+.env
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,64 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: resume-backend-postgres
+    environment:
+      POSTGRES_USER: resume_user
+      POSTGRES_PASSWORD: resume_password
+      POSTGRES_DB: resume_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resume_user -d resume_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - resume-network
+    restart: unless-stopped
+
+  # Backend Service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: resume-backend-service
+    environment:
+      # Database configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: resume_user
+      DB_PASSWORD: resume_password
+      DB_NAME: resume_db
+      DB_SSLMODE: disable
+      # Server configuration
+      SERVER_PORT: 8080
+      SERVER_HOST: 0.0.0.0
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - resume-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  resume-network:
+    driver: bridge
+

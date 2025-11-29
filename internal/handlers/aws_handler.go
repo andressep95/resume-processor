@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"resume-backend-service/internal/dto"
 
@@ -14,10 +15,19 @@ func NewAWSHandler() *AWSHandler {
 }
 
 func (h *AWSHandler) ProcessResumeResultsHandler(c *fiber.Ctx) error {
+	// Log del body raw para debug
+	bodyRaw := c.Body()
+	log.Printf("📥 Body raw recibido (%d bytes): %s", len(bodyRaw), string(bodyRaw))
+
+	// Log de headers para debug
+	log.Printf("📋 Headers recibidos:")
+	c.Request().Header.VisitAll(func(key, value []byte) {
+		log.Printf("  %s: %s", string(key), string(value))
+	})
 
 	var processedData dto.CVProcessedData
 	if err := c.BodyParser(&processedData); err != nil {
-		log.Printf("Error al parsear el cuerpo de la solicitud: %v", err)
+		log.Printf("❌ Error al parsear el cuerpo de la solicitud: %v", err)
 
 		response := dto.AWSProcessResponse{
 			Status:  "error",
@@ -27,7 +37,9 @@ func (h *AWSHandler) ProcessResumeResultsHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(response)
 	}
 
-	log.Printf("Datos procesados correctamente: %+v", processedData)
+	// Log del JSON parseado de forma legible
+	jsonPretty, _ := json.MarshalIndent(processedData, "", "  ")
+	log.Printf("✅ Datos procesados correctamente:\n%s", string(jsonPretty))
 
 	response := dto.AWSProcessResponse{
 		Status:  "success",

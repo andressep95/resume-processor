@@ -2,7 +2,7 @@ package config
 
 import (
 	"log"
-	router "resume-backend-service/internal/routes"
+	router "resume-backend-service/internal/router"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -20,7 +20,7 @@ func Bootstrap() *Application {
 
 	// Crear instancia de Fiber
 	app := fiber.New(fiber.Config{
-		AppName: cfg.App.Name,
+		AppName: "Resume Backend Service",
 	})
 
 	// Middlewares globales
@@ -37,11 +37,7 @@ func Bootstrap() *Application {
 }
 
 func (a *Application) Run() {
-	addr := a.Config.Server.Host + ":" + a.Config.Server.Port
-	log.Printf("🚀 Servidor iniciado en http://%s", addr)
-	log.Printf("📝 Ambiente: %s", a.Config.App.Environment)
-
-	if err := a.App.Listen(":" + a.Config.Server.Port); err != nil {
+	if err := a.App.Listen(":" + a.Config.Port); err != nil {
 		log.Fatalf("❌ Error al iniciar el servidor: %v", err)
 	}
 }

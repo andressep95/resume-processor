@@ -5,60 +5,43 @@ import (
 	"strconv"
 )
 
+// Config contiene todos los parámetros esenciales para la aplicación.
 type Config struct {
-	Server  ServerConfig
-	App     AppConfig
-	Storage StorageConfig
+	// Configuración del Servidor
+	Port string
+
+	// Configuración de Almacenamiento/Archivos
+	MaxFileSize int64
+
+	// Configuración de Servicios Externos
+	PresignedURLServiceEndpoint string
 }
 
-type ServerConfig struct {
-	Port         string
-	Host         string
-	ReadTimeout  int
-	WriteTimeout int
-}
-
-type AppConfig struct {
-	Name        string
-	Environment string
-}
-
-type StorageConfig struct {
-	UploadPath   string
-	MaxFileSize  int64
-	AllowedTypes []string
-}
-
+// Load inicializa y retorna la configuración de la aplicación, leyendo
+// las variables de entorno o usando valores por defecto.
 func Load() *Config {
-	return &Config{
-		Server: ServerConfig{
-			Port:         getEnv("SERVER_PORT", "8080"),
-			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
-			ReadTimeout:  getEnvAsInt("SERVER_READ_TIMEOUT", 10),
-			WriteTimeout: getEnvAsInt("SERVER_WRITE_TIMEOUT", 10),
-		},
-		App: AppConfig{
-			Name:        getEnv("APP_NAME", "Resume Backend Service"),
-			Environment: getEnv("APP_ENV", "development"),
-		},
-		Storage: StorageConfig{
-			UploadPath:   getEnv("UPLOAD_PATH", "./uploads"),
-			MaxFileSize:  getEnvAsInt64("MAX_FILE_SIZE", 10*1024*1024), // 10MB
-			AllowedTypes: []string{".txt", ".doc", ".docx", ".pdf"},
-		},
+	// 1. Definimos el límite de 10MB para la carga de archivos.
+	const defaultMaxFileSize = 10485760
+
+	cfg := &Config{
+		// 1. Puerto del Servidor (Esencial)
+		Port: getEnv("SERVER_PORT", "8080"),
+
+		// 2. Tamaño Máximo de Archivo (Usado en el middleware de Fiber)
+		MaxFileSize: getEnvAsInt64("MAX_FILE_SIZE", defaultMaxFileSize),
+
+		// 3. Endpoint del Servicio de Presigned URL (ESENCIAL)
+		// Requerido para que el handler sepa a dónde llamar para obtener la URL de subida.
+		PresignedURLServiceEndpoint: getEnv("PRESIGNED_URL_SERVICE_ENDPOINT", "http://localhost:8081/api/v1/s3/presign"),
 	}
+
+	return cfg
 }
+
+// --- Funciones de Utilidad ---
 
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func getEnvAsInt(key string, defaultValue int) int {
-	valueStr := getEnv(key, "")
-	if value, err := strconv.Atoi(valueStr); err == nil {
 		return value
 	}
 	return defaultValue

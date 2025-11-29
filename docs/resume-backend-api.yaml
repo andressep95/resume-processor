@@ -7,10 +7,11 @@ info:
 paths:
   /process:
     post:
-      summary: Procesa un archivo con instrucciones y lenguaje objetivo.
+      summary: Envía un CV para procesamiento asíncrono.
       description: >
-        Este endpoint recibe un archivo PDF, TXT, DOC o DOCX junto con una cadena de instrucciones
-        y un idioma objetivo. Retorna únicamente una confirmación de solicitud procesada.
+        Este endpoint recibe un archivo de CV (PDF, TXT, DOC, o DOCX) junto con una cadena 
+        de instrucciones y un idioma objetivo. Retorna una confirmación 202 Accepted, 
+        indicando que la solicitud ha sido encolada para procesamiento posterior.
       requestBody:
         required: true
         content:
@@ -21,7 +22,12 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: Archivo a procesar (pdf, txt, doc, docx)
+                  description: >
+                    Archivo a procesar. Formatos permitidos: **PDF, TXT, DOC, DOCX**.
+                  # Puedes añadir un ejemplo de tipo MIME, aunque esto es solo informativo
+                  # content:
+                  #   application/pdf: {}
+                  #   text/plain: {}
                 instructions:
                   type: string
                   description: Indicaciones para el procesamiento del archivo
@@ -30,11 +36,10 @@ paths:
                   description: Idioma solicitado para la salida
               required:
                 - file
-                - instructions
-                - language
+
       responses:
-        '200':
-          description: Solicitud procesada exitosamente
+        '202':
+          description: Solicitud ACEPTADA para procesamiento (Asíncrono)
           content:
             application/json:
               schema:
@@ -42,11 +47,16 @@ paths:
                 properties:
                   status:
                     type: string
-                    example: processed
+                    example: accepted
                   message:
                     type: string
-                    example: La solicitud ha sido procesada correctamente.
+                    example: La solicitud ha sido encolada para procesamiento.
+                  # Opcionalmente, puedes devolver un Job ID o una URI de estado:
+                  # jobId:
+                  #   type: string
+                  #   format: uuid
+                  #   example: 123e4567-e89b-12d3-a456-426614174000
         '400':
-          description: Petición inválida
+          description: Petición inválida (ej. archivo no soportado, campos faltantes)
         '500':
           description: Error interno del servidor

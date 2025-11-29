@@ -45,12 +45,12 @@ RUN chown -R appuser:appuser /app
 # Cambiar al usuario no-root
 USER appuser
 
-# Exponer el puerto
+# Exponer el puerto (configurable via ENV)
 EXPOSE 8080
 
-# Healthcheck
+# Healthcheck dinámico que usa la variable SERVER_PORT (default 8080)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/api/v1/health/ || exit 1
+    CMD curl -f http://localhost:${SERVER_PORT:-8080}/api/v1/health/ || exit 1
 
 # Comando para ejecutar la aplicación
 CMD ["./resume-backend-service"]

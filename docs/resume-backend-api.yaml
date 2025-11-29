@@ -113,8 +113,8 @@ paths:
     post:
       summary: Recibir resultados de CV procesado (Webhook/Callback)
       description: >
-        Endpoint para recibir los datos procesados del CV desde el worker o servicio externo.
-        Recibe un JSON estructurado con toda la información extraída del CV.
+        Endpoint para recibir los datos procesados del CV desde AWS Lambda.
+        Recibe un JSON con metadata del procesamiento y los datos estructurados del CV.
       tags:
         - Resume Processing
       requestBody:
@@ -122,7 +122,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CVProcessedData'
+              $ref: '#/components/schemas/AWSLambdaResponse'
       responses:
         '200':
           description: Datos procesados correctamente
@@ -153,6 +153,35 @@ paths:
 
 components:
   schemas:
+    AWSLambdaResponse:
+      type: object
+      description: Respuesta completa de AWS Lambda con metadata y datos procesados
+      properties:
+        input_file:
+          type: string
+          description: Ruta S3 del archivo de entrada
+          example: "s3://cv-processor-dev/inputs/2025-11-29/05-05-08/cv-clean.pdf"
+        output_file:
+          type: string
+          description: Ruta S3 del archivo de salida JSON
+          example: "s3://cv-processor-dev/outputs/2025-11-29/05-05-08/cv-clean.json"
+        processing_time_ms:
+          type: integer
+          description: Tiempo de procesamiento en milisegundos
+          example: 11919
+        status:
+          type: string
+          description: Estado del procesamiento
+          enum: [success, error]
+          example: success
+        structured_data:
+          $ref: '#/components/schemas/CVProcessedData'
+      required:
+        - input_file
+        - output_file
+        - status
+        - structured_data
+
     CVProcessedData:
       type: object
       description: Estructura completa de datos procesados del CV

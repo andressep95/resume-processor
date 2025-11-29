@@ -1,7 +1,15 @@
 package dto
 
-// CVProcessedData es la estructura principal que recibe el JSON del worker/AWS.
-// Contiene todos los datos extraídos y procesados del CV.
+// AWSLambdaResponse es la estructura completa que envía AWS Lambda
+type AWSLambdaResponse struct {
+	InputFile          string            `json:"input_file"`
+	OutputFile         string            `json:"output_file"`
+	ProcessingTimeMs   int64             `json:"processing_time_ms"`
+	Status             string            `json:"status"`
+	StructuredData     CVProcessedData   `json:"structured_data"`
+}
+
+// CVProcessedData es la estructura principal que contiene los datos extraídos y procesados del CV.
 type CVProcessedData struct {
 	Certifications         []Certification `json:"certifications"`
 	Education              []Education     `json:"education"`
@@ -9,9 +17,6 @@ type CVProcessedData struct {
 	ProfessionalExperience []Experience    `json:"professionalExperience"`
 	Projects               []Project       `json:"projects"`
 	TechnicalSkills        TechnicalSkills `json:"technicalSkills"`
-
-	// Campo opcional para identificar a qué trabajo asíncrono responde esto
-	//JobId string `json:"jobId,omitempty"`
 }
 
 // Certification representa una certificación o curso obtenido.

@@ -20,15 +20,15 @@ type Config struct {
 // Load inicializa y retorna la configuración de la aplicación, leyendo
 // las variables de entorno o usando valores por defecto.
 func Load() *Config {
-	// 1. Definimos el límite de 10MB para la carga de archivos.
-	const defaultMaxFileSize = 10485760
+	// 1. Tamaño por defecto en MB
+	const defaultMaxFileSizeMB = 10
 
 	cfg := &Config{
 		// 1. Puerto del Servidor (Esencial)
 		Port: getEnv("SERVER_PORT", "8080"),
 
-		// 2. Tamaño Máximo de Archivo (Usado en el middleware de Fiber)
-		MaxFileSize: getEnvAsInt64("MAX_FILE_SIZE", defaultMaxFileSize),
+		// 2. Tamaño Máximo de Archivo en MB (se convierte a bytes internamente)
+		MaxFileSize: getEnvAsInt64("MAX_FILE_SIZE_MB", defaultMaxFileSizeMB) * 1024 * 1024,
 
 		// 3. Endpoint del Servicio de Presigned URL (ESENCIAL)
 		// Requerido para que el handler sepa a dónde llamar para obtener la URL de subida.

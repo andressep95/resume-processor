@@ -2,11 +2,13 @@ package router
 
 import (
 	"resume-backend-service/internal/handlers"
+	"resume-backend-service/internal/services"
+	"resume-backend-service/pkg/client"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App) {
+func SetupRoutes(app *fiber.App, presignedURLEndpoint string) {
 	// API v1
 	api := app.Group("/api/v1")
 
@@ -17,9 +19,18 @@ func SetupRoutes(app *fiber.App) {
 
 	// CV Processor routes
 	resume := api.Group("/resume")
-	cvHandler := handlers.NewCVHandler()
+
+	// Inicializar clientes
+	presignedURLClient := client.NewPresignedURLClient(presignedURLEndpoint)
+
+	// Inicializar servicios
+	resumeService := services.NewResumeService(presignedURLClient)
+
+	// Inicializar handlers con dependencias
+	resumeHandler := handlers.NewResumeHandler(resumeService)
 	awsHandler := handlers.NewAWSHandler()
-	resume.Post("/", cvHandler.ProcessCVHandler)
-	resume.Post("/results", awsHandler.ProcessCVHandler)
+
+	resume.Post("/", resumeHandler.ProcessResumeHandler)
+	resume.Post("/results", awsHandler.ProcessResumeResultsHandler)
 
 }

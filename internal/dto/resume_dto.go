@@ -1,11 +1,6 @@
 package dto
 
-type CVProcessorRequestDTO struct {
-	Instructions string `json:"instructions"`
-	Language     string `json:"language"`
-}
-
-type CVProcessorResponseDTO struct {
+type ResumeProcessorResponseDTO struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }

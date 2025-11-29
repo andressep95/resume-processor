@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/joho/godotenv"
 )
 
 type Application struct {
@@ -15,6 +16,11 @@ type Application struct {
 }
 
 func Bootstrap() *Application {
+	// Cargar variables de entorno desde .env
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️  No se encontró archivo .env, usando valores por defecto")
+	}
+
 	// Cargar configuración
 	cfg := Load()
 
@@ -27,8 +33,8 @@ func Bootstrap() *Application {
 	app.Use(logger.New())
 	app.Use(recover.New())
 
-	// Registrar rutas
-	router.SetupRoutes(app)
+	// Registrar rutas (pasar endpoint de presigned URLs)
+	router.SetupRoutes(app, cfg.PresignedURLServiceEndpoint)
 
 	return &Application{
 		App:    app,

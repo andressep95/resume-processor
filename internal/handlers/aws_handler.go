@@ -13,7 +13,7 @@ func NewAWSHandler() *AWSHandler {
 	return &AWSHandler{}
 }
 
-func (h *AWSHandler) ProcessCVHandler(c *fiber.Ctx) error {
+func (h *AWSHandler) ProcessResumeResultsHandler(c *fiber.Ctx) error {
 
 	var processedData dto.CVProcessedData
 	if err := c.BodyParser(&processedData); err != nil {

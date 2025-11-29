@@ -2,7 +2,12 @@ module resume-backend-service
 
 go 1.24.5
 
-require github.com/gofiber/fiber/v2 v2.52.10
+require (
+	github.com/gofiber/fiber/v2 v2.52.10
+	github.com/joho/godotenv v1.5.1
+	github.com/jung-kurt/gofpdf v1.16.2
+	github.com/nguyenthenguyen/docx v0.0.0-20230621112118-9c8e795a11db
+)
 
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect

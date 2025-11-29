@@ -1,17 +1,44 @@
 openapi: 3.0.3
 info:
-  title: CV Processor API
+  title: Resume Backend Service API
   version: 1.0.0
-  description: API para procesar archivos de CV junto con instrucciones y lenguaje.
+  description: API para procesamiento asíncrono de CVs y recepción de resultados procesados.
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Servidor local de desarrollo
 
 paths:
-  /process:
+  /health/:
+    get:
+      summary: Health Check
+      description: Verifica que el servicio esté funcionando correctamente.
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Servicio funcionando correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  service:
+                    type: string
+                    example: resume-backend-service
+
+  /resume/:
     post:
-      summary: Envía un CV para procesamiento asíncrono.
+      summary: Enviar CV para procesamiento asíncrono
       description: >
-        Este endpoint recibe un archivo de CV (PDF, TXT, DOC, o DOCX) junto con una cadena 
-        de instrucciones y un idioma objetivo. Retorna una confirmación 202 Accepted, 
-        indicando que la solicitud ha sido encolada para procesamiento posterior.
+        Recibe un archivo de CV (PDF, TXT, DOC, o DOCX) junto con instrucciones opcionales
+        y un idioma objetivo. Encola la solicitud para procesamiento asíncrono y retorna
+        una confirmación 202 Accepted.
+      tags:
+        - Resume Processing
       requestBody:
         required: true
         content:
@@ -22,24 +49,26 @@ paths:
                 file:
                   type: string
                   format: binary
-                  description: >
-                    Archivo a procesar. Formatos permitidos: **PDF, TXT, DOC, DOCX**.
-                  # Puedes añadir un ejemplo de tipo MIME, aunque esto es solo informativo
-                  # content:
-                  #   application/pdf: {}
-                  #   text/plain: {}
+                  description: |
+                    Archivo de CV a procesar.
+
+                    **Formatos permitidos:** .pdf, .txt, .doc, .docx
+
+                    **Tamaño máximo:** 10 MB
                 instructions:
                   type: string
-                  description: Indicaciones para el procesamiento del archivo
+                  description: Instrucciones específicas para el procesamiento del CV (opcional)
+                  example: "Extraer experiencia laboral de los últimos 5 años"
                 language:
                   type: string
-                  description: Idioma solicitado para la salida
+                  description: Idioma del CV o idioma deseado para el procesamiento
+                  default: es
+                  example: es
               required:
                 - file
-
       responses:
         '202':
-          description: Solicitud ACEPTADA para procesamiento (Asíncrono)
+          description: Solicitud aceptada y encolada para procesamiento
           content:
             application/json:
               schema:
@@ -50,13 +79,232 @@ paths:
                     example: accepted
                   message:
                     type: string
-                    example: La solicitud ha sido encolada para procesamiento.
-                  # Opcionalmente, puedes devolver un Job ID o una URI de estado:
-                  # jobId:
-                  #   type: string
-                  #   format: uuid
-                  #   example: 123e4567-e89b-12d3-a456-426614174000
+                    example: Solicitud encolada para procesamiento.
         '400':
-          description: Petición inválida (ej. archivo no soportado, campos faltantes)
+          description: Petición inválida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: "Campo 'file' requerido."
+              examples:
+                missing_file:
+                  summary: Archivo no proporcionado
+                  value:
+                    status: error
+                    message: "Campo 'file' requerido."
+                invalid_format:
+                  summary: Formato de archivo no permitido
+                  value:
+                    status: error
+                    message: "Formato de archivo no permitido. Permite: .pdf, .txt, .doc, .docx."
         '500':
           description: Error interno del servidor
+
+  /resume/results:
+    post:
+      summary: Recibir resultados de CV procesado (Webhook/Callback)
+      description: >
+        Endpoint para recibir los datos procesados del CV desde el worker o servicio externo.
+        Recibe un JSON estructurado con toda la información extraída del CV.
+      tags:
+        - Resume Processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CVProcessedData'
+      responses:
+        '200':
+          description: Datos procesados correctamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Datos procesados correctamente.
+        '400':
+          description: Error al parsear el cuerpo de la solicitud
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: error
+                  message:
+                    type: string
+                    example: Error al parsear el cuerpo de la solicitud.
+
+components:
+  schemas:
+    CVProcessedData:
+      type: object
+      description: Estructura completa de datos procesados del CV
+      properties:
+        certifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/Certification'
+        education:
+          type: array
+          items:
+            $ref: '#/components/schemas/Education'
+        header:
+          $ref: '#/components/schemas/Header'
+        professionalExperience:
+          type: array
+          items:
+            $ref: '#/components/schemas/Experience'
+        projects:
+          type: array
+          items:
+            $ref: '#/components/schemas/Project'
+        technicalSkills:
+          $ref: '#/components/schemas/TechnicalSkills'
+      example:
+        header:
+          name: "Juan Pérez"
+          contact:
+            email: "juan.perez@example.com"
+            phone: "+34 600 123 456"
+        professionalExperience:
+          - company: "Tech Corp"
+            position: "Senior Developer"
+            period:
+              start: "2020-01"
+              end: "2023-12"
+            responsibilities:
+              - "Desarrollo de aplicaciones web"
+              - "Liderazgo de equipo técnico"
+        education:
+          - institution: "Universidad de Madrid"
+            degree: "Ingeniería en Informática"
+            graduationDate: "2019-06"
+        technicalSkills:
+          skills:
+            - "JavaScript"
+            - "React"
+            - "Node.js"
+        certifications:
+          - name: "AWS Certified Developer"
+            dateObtained: "2021-03"
+        projects:
+          - name: "E-commerce Platform"
+            description: "Plataforma de comercio electrónico escalable"
+            technologies:
+              - "React"
+              - "Node.js"
+              - "MongoDB"
+
+    Certification:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nombre de la certificación
+        dateObtained:
+          type: string
+          description: Fecha de obtención (formato flexible)
+
+    Education:
+      type: object
+      properties:
+        institution:
+          type: string
+          description: Nombre de la institución educativa
+        degree:
+          type: string
+          description: Título o grado obtenido
+        graduationDate:
+          type: string
+          description: Fecha de graduación
+        achievements:
+          type: array
+          items:
+            type: string
+          description: Logros académicos (opcional)
+
+    Header:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nombre completo de la persona
+        contact:
+          $ref: '#/components/schemas/Contact'
+
+    Contact:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: Correo electrónico
+        phone:
+          type: string
+          description: Número de teléfono
+
+    Experience:
+      type: object
+      properties:
+        company:
+          type: string
+          description: Nombre de la empresa
+        position:
+          type: string
+          description: Cargo o posición ocupada
+        period:
+          $ref: '#/components/schemas/Period'
+        responsibilities:
+          type: array
+          items:
+            type: string
+          description: Lista de responsabilidades
+
+    Period:
+      type: object
+      properties:
+        start:
+          type: string
+          description: Fecha de inicio (formato flexible)
+        end:
+          type: string
+          description: Fecha de fin (formato flexible, puede ser "Presente")
+
+    Project:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nombre del proyecto
+        description:
+          type: string
+          description: Descripción del proyecto
+        technologies:
+          type: array
+          items:
+            type: string
+          description: Tecnologías utilizadas
+
+    TechnicalSkills:
+      type: object
+      properties:
+        skills:
+          type: array
+          items:
+            type: string
+          description: Lista de habilidades técnicas

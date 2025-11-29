@@ -18,5 +18,8 @@ func SetupRoutes(app *fiber.App) {
 	// CV Processor routes
 	resume := api.Group("/resume")
 	cvHandler := handlers.NewCVHandler()
+	awsHandler := handlers.NewAWSHandler()
 	resume.Post("/", cvHandler.ProcessCVHandler)
+	resume.Post("/results", awsHandler.ProcessCVHandler)
+
 }

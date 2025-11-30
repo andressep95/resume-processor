@@ -18,10 +18,6 @@ func SetupRoutes(app *fiber.App, presignedURLEndpoint string, authMiddleware *mi
 	healthHandler := handlers.NewHealthHandler()
 	health.Get("/", healthHandler.HandleHealthCheck)
 
-	// CV Processor routes (con autenticación)
-	resume := api.Group("/resume")
-	resume.Use(authMiddleware.ValidateJWT()) // Aplicar middleware de autenticación
-
 	// Inicializar clientes
 	presignedURLClient := client.NewPresignedURLClient(presignedURLEndpoint)
 
@@ -32,7 +28,13 @@ func SetupRoutes(app *fiber.App, presignedURLEndpoint string, authMiddleware *mi
 	resumeHandler := handlers.NewResumeHandler(resumeService)
 	awsHandler := handlers.NewAWSHandler()
 
-	resume.Post("/", resumeHandler.ProcessResumeHandler)
+	// CV Processor routes
+	resume := api.Group("/resume")
+	
+	// Endpoint protegido (requiere autenticación de usuario)
+	resume.Post("/", authMiddleware.ValidateJWT(), resumeHandler.ProcessResumeHandler)
+	
+	// Endpoint público (callback de AWS Lambda)
 	resume.Post("/results", awsHandler.ProcessResumeResultsHandler)
 
 }

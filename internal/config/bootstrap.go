@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"resume-backend-service/internal/middleware"
 	router "resume-backend-service/internal/router"
 
 	"github.com/gofiber/fiber/v2"
@@ -33,8 +34,11 @@ func Bootstrap() *Application {
 	app.Use(logger.New())
 	app.Use(recover.New())
 
-	// Registrar rutas (pasar endpoint de presigned URLs)
-	router.SetupRoutes(app, cfg.PresignedURLServiceEndpoint)
+	// Inicializar middleware de autenticación
+	authMiddleware := middleware.NewAuthMiddleware(cfg.AuthJWKSURL)
+
+	// Registrar rutas (pasar valores individuales y middleware)
+	router.SetupRoutes(app, cfg.PresignedURLServiceEndpoint, authMiddleware)
 
 	return &Application{
 		App:    app,

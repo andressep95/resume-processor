@@ -15,6 +15,9 @@ type Config struct {
 
 	// Configuración de Servicios Externos
 	PresignedURLServiceEndpoint string
+
+	// Configuración de Autenticación
+	AuthJWKSURL string
 }
 
 // Load inicializa y retorna la configuración de la aplicación, leyendo
@@ -33,6 +36,9 @@ func Load() *Config {
 		// 3. Endpoint del Servicio de Presigned URL (ESENCIAL)
 		// Requerido para que el handler sepa a dónde llamar para obtener la URL de subida.
 		PresignedURLServiceEndpoint: getEnv("PRESIGNED_URL_SERVICE_ENDPOINT", "http://localhost:8081/api/v1/s3/presign"),
+
+		// 4. URL del JWKS para validación de tokens JWT
+		AuthJWKSURL: getEnv("AUTH_JWKS_URL", "https://auth.cloudcentinel.com/.well-known/jwks.json"),
 	}
 
 	return cfg

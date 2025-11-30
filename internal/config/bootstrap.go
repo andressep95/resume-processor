@@ -17,13 +17,15 @@ type Application struct {
 }
 
 func Bootstrap() *Application {
-	// Cargar variables de entorno desde .env
+	// Cargar variables de entorno desde .env (solo en desarrollo)
 	if err := godotenv.Load(); err != nil {
-		log.Println("⚠️  No se encontró archivo .env, usando valores por defecto")
+		log.Println("ℹ️  Usando variables de entorno del sistema (producción)")
 	}
 
 	// Cargar configuración
 	cfg := Load()
+	log.Printf("✅ Configuración cargada: Port=%s, MaxFileSize=%dMB, AuthEnabled=%v",
+		cfg.Port, cfg.MaxFileSize/(1024*1024), cfg.AuthJWKSURL != "")
 
 	// Crear instancia de Fiber
 	app := fiber.New(fiber.Config{

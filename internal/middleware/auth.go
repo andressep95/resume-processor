@@ -71,7 +71,6 @@ func (a *AuthMiddleware) ValidateJWT() fiber.Handler {
 		
 		// Si falla por falta de 'kid', intentar con cada clave individualmente
 		if parseErr != nil && strings.Contains(parseErr.Error(), "no key ID") {
-			log.Printf("⚠️  Token sin 'kid', intentando con todas las claves...")
 			iter := keySet.Keys(ctx)
 			for iter.Next(ctx) {
 				pair := iter.Pair()
@@ -83,7 +82,6 @@ func (a *AuthMiddleware) ValidateJWT() fiber.Handler {
 					jwt.WithValidate(true),
 				)
 				if err == nil {
-					log.Printf("✅ Token validado con clave sin kid")
 					break
 				}
 			}

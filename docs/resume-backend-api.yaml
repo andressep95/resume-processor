@@ -84,6 +84,11 @@ paths:
                   message:
                     type: string
                     example: Solicitud encolada para procesamiento.
+                  request_id:
+                    type: string
+                    format: uuid
+                    description: ID único de la solicitud para tracking
+                    example: "550e8400-e29b-41d4-a716-446655440000"
         '400':
           description: Petición inválida
           content:
@@ -217,6 +222,11 @@ components:
       type: object
       description: Respuesta completa de AWS Lambda con metadata y datos procesados
       properties:
+        request_id:
+          type: string
+          format: uuid
+          description: ID único de la solicitud (extraído del metadata de S3)
+          example: "550e8400-e29b-41d4-a716-446655440000"
         input_file:
           type: string
           description: Ruta S3 del archivo de entrada
@@ -237,6 +247,7 @@ components:
         structured_data:
           $ref: '#/components/schemas/CVProcessedData'
       required:
+        - request_id
         - input_file
         - output_file
         - status

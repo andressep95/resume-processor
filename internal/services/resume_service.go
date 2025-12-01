@@ -6,6 +6,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"resume-backend-service/internal/domain"
 	"resume-backend-service/internal/dto"
@@ -132,7 +133,11 @@ func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte, request
 	req.Header.Set("Content-Type", "application/pdf")
 	req.Header.Set("x-amz-meta-request-id", requestID)      // Request ID para tracking
 	req.Header.Set("x-amz-meta-language", language)
-	req.Header.Set("x-amz-meta-instructions", instructions)
+	
+	// URL encode instructions para manejar caracteres especiales y acentos
+	if instructions != "" {
+		req.Header.Set("x-amz-meta-instructions", url.QueryEscape(instructions))
+	}
 
 	log.Printf("🔄 Subiendo a S3 - RequestID: %s, Size: %d bytes, Language: %s",
 		requestID, len(fileData), language)

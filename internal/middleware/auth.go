@@ -57,17 +57,48 @@ func (a *AuthMiddleware) ValidateJWT() fiber.Handler {
 			})
 		}
 
-		// Validar y parsear el token (sin validar claims específicos por ahora)
-		token, err := jwt.Parse(
+		// Validar y parsear el token
+		// Si el token no tiene 'kid', intentar con todas las claves
+		var token jwt.Token
+		var parseErr error
+		
+		// Primero intentar con el keyset completo
+		token, parseErr = jwt.Parse(
 			[]byte(tokenString),
 			jwt.WithKeySet(keySet),
 			jwt.WithValidate(true),
 		)
-		if err != nil {
-			log.Printf("❌ Error validando token: %v", err)
+		
+		// Si falla por falta de 'kid', intentar con cada clave individualmente
+		if parseErr != nil && strings.Contains(parseErr.Error(), "no key ID") {
+			log.Printf("⚠️  Token sin 'kid', intentando con todas las claves...")
+			iter := keySet.Keys(ctx)
+			for iter.Next(ctx) {
+				pair := iter.Pair()
+				key := pair.Value.(jwk.Key)
+				
+				token, err = jwt.Parse(
+					[]byte(tokenString),
+					jwt.WithKey(key.Algorithm(), key),
+					jwt.WithValidate(true),
+				)
+				if err == nil {
+					log.Printf("✅ Token validado con clave sin kid")
+					break
+				}
+			}
+			if err != nil {
+				log.Printf("❌ Error validando token con todas las claves: %v", err)
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Token inválido",
+					"details": err.Error(),
+				})
+			}
+		} else if parseErr != nil {
+			log.Printf("❌ Error validando token: %v", parseErr)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Token inválido",
-				"details": err.Error(),
+				"details": parseErr.Error(),
 			})
 		}
 

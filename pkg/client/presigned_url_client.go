@@ -27,7 +27,7 @@ func NewPresignedURLClient(baseURL string) *PresignedURLClient {
 }
 
 // GetUploadURL obtiene una URL firmada para subir un archivo a S3
-func (c *PresignedURLClient) GetUploadURL(filename, contentType, language, instructions string) (*dto.PresignedURLResponse, error) {
+func (c *PresignedURLClient) GetUploadURL(filename, contentType, language, instructions, userEmail string) (*dto.PresignedURLResponse, error) {
 	// Construir el request
 	requestBody := dto.PresignedURLRequest{
 		Filename:    filename,
@@ -35,6 +35,7 @@ func (c *PresignedURLClient) GetUploadURL(filename, contentType, language, instr
 		Metadata: dto.PresignedMetadata{
 			Language:     language,
 			Instructions: instructions,
+			UserEmail:    userEmail,
 		},
 	}
 

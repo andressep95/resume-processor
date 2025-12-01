@@ -11,6 +11,7 @@ type PresignedURLRequest struct {
 type PresignedMetadata struct {
 	Language     string `json:"language"`
 	Instructions string `json:"instructions"`
+	UserEmail    string `json:"user_email"`
 }
 
 // PresignedURLResponse es la respuesta del servicio de presigned URLs

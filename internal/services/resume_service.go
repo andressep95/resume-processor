@@ -57,6 +57,7 @@ func (s *ResumeService) ProcessResume(instructions string, language string, user
 		"application/pdf",
 		language,
 		instructions,
+		userEmail,
 	)
 	if err != nil {
 		log.Printf("Error al obtener URL firmada: %v", err)

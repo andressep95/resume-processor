@@ -6,13 +6,13 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
-	"net/url"
 	"path/filepath"
 	"resume-backend-service/internal/domain"
 	"resume-backend-service/internal/dto"
 	"resume-backend-service/internal/repository"
 	"resume-backend-service/pkg/client"
 	"resume-backend-service/pkg/converter"
+	"resume-backend-service/pkg/utils"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -78,6 +78,9 @@ func (s *ResumeService) ProcessResume(userID string, instructions string, langua
 
 	// 5. Obtener URL firmada del servicio de presigned URLs
 	// IMPORTANTE: Se envía request_id para que sea incluido en la firma de la presigned URL
+	// Sanitizar instructions para metadata S3 (eliminar acentos, max 1500 chars)
+	sanitizedInstructions := utils.SanitizeForS3Metadata(instructions, 1500)
+	
 	log.Printf("🔑 Solicitando URL firmada - RequestID: %s, Filename: %s, Language: %s",
 		resumeRequest.RequestID, pdfFilename, language)
 
@@ -86,7 +89,7 @@ func (s *ResumeService) ProcessResume(userID string, instructions string, langua
 		"application/pdf",
 		resumeRequest.RequestID.String(),
 		language,
-		instructions,
+		sanitizedInstructions,
 	)
 	if err != nil {
 		log.Printf("❌ Error al obtener URL firmada: %v", err)
@@ -96,8 +99,8 @@ func (s *ResumeService) ProcessResume(userID string, instructions string, langua
 
 	log.Printf("URL firmada obtenida exitosamente (expira en: %s)", presignedResp.ExpiresIn)
 
-	// 6. Subir el PDF a S3 usando la URL firmada con los metadatos (INCLUIR REQUEST_ID)
-	if err := s.uploadToS3(presignedResp.URL, pdfBytes, resumeRequest.RequestID.String(), language, instructions); err != nil {
+	// 6. Subir el PDF a S3 usando la URL firmada con los metadatos
+	if err := s.uploadToS3(presignedResp.URL, pdfBytes, resumeRequest.RequestID.String(), language, sanitizedInstructions); err != nil {
 		log.Printf("Error al subir archivo a S3: %v", err)
 		s.resumeRequestRepo.MarkAsFailed(resumeRequest.RequestID, "Error al subir archivo a S3")
 		return dto.ResumeProcessorResponseDTO{}, fiber.NewError(fiber.StatusInternalServerError, "Error al subir el archivo.")
@@ -131,12 +134,10 @@ func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte, request
 
 	// Headers requeridos - DEBEN coincidir con los metadatos de la presigned URL
 	req.Header.Set("Content-Type", "application/pdf")
-	req.Header.Set("x-amz-meta-request-id", requestID)      // Request ID para tracking
+	req.Header.Set("x-amz-meta-request-id", requestID)
 	req.Header.Set("x-amz-meta-language", language)
-	
-	// URL encode instructions para manejar caracteres especiales y acentos
 	if instructions != "" {
-		req.Header.Set("x-amz-meta-instructions", url.QueryEscape(instructions))
+		req.Header.Set("x-amz-meta-instructions", instructions) // Ya sanitizado
 	}
 
 	log.Printf("🔄 Subiendo a S3 - RequestID: %s, Size: %d bytes, Language: %s",

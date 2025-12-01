@@ -18,6 +18,9 @@ type Config struct {
 
 	// Configuración de Autenticación
 	AuthJWKSURL string
+
+	// Configuración de CORS
+	CORSAllowedOrigins string
 }
 
 // Load inicializa y retorna la configuración de la aplicación, leyendo
@@ -39,6 +42,9 @@ func Load() *Config {
 
 		// 4. URL del JWKS para validación de tokens JWT
 		AuthJWKSURL: getEnv("AUTH_JWKS_URL", "https://auth.cloudcentinel.com/.well-known/jwks.json"),
+
+		// 5. Orígenes permitidos para CORS (separados por coma)
+		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "*"),
 	}
 
 	return cfg

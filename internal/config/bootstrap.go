@@ -6,6 +6,7 @@ import (
 	router "resume-backend-service/internal/router"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joho/godotenv"
@@ -33,6 +34,12 @@ func Bootstrap() *Application {
 	})
 
 	// Middlewares globales
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     cfg.CORSAllowedOrigins,
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin,Content-Type,Accept,Authorization",
+		AllowCredentials: true,
+	}))
 	app.Use(logger.New())
 	app.Use(recover.New())
 

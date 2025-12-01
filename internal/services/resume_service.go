@@ -33,7 +33,7 @@ var allowedExtensions = map[string]bool{
 	// Nota: .doc (formato antiguo) no está soportado sin LibreOffice
 }
 
-func (s *ResumeService) ProcessResume(instructions string, language string, fileHeader *multipart.FileHeader) (dto.ResumeProcessorResponseDTO, error) {
+func (s *ResumeService) ProcessResume(instructions string, language string, userEmail string, fileHeader *multipart.FileHeader) (dto.ResumeProcessorResponseDTO, error) {
 
 	// 1. Validación de Formato (Mantenido en el Service)
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
@@ -66,7 +66,7 @@ func (s *ResumeService) ProcessResume(instructions string, language string, file
 	log.Printf("URL firmada obtenida exitosamente (expira en: %s)", presignedResp.ExpiresIn)
 
 	// 4. Subir el PDF a S3 usando la URL firmada con los metadatos correctos
-	if err := s.uploadToS3(presignedResp.URL, pdfBytes, language, instructions); err != nil {
+	if err := s.uploadToS3(presignedResp.URL, pdfBytes, language, instructions, userEmail); err != nil {
 		log.Printf("Error al subir archivo a S3: %v", err)
 		return dto.ResumeProcessorResponseDTO{}, fiber.NewError(fiber.StatusInternalServerError, "Error al subir el archivo.")
 	}
@@ -81,7 +81,7 @@ func (s *ResumeService) ProcessResume(instructions string, language string, file
 }
 
 // uploadToS3 sube un archivo a S3 usando una URL firmada con los metadatos correctos
-func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte, language, instructions string) error {
+func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte, language, instructions, userEmail string) error {
 	req, err := http.NewRequest("PUT", presignedURL, bytes.NewReader(fileData))
 	if err != nil {
 		return fmt.Errorf("error al crear request de subida: %w", err)
@@ -93,6 +93,7 @@ func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte, languag
 	// Metadatos personalizados con el prefijo x-amz-meta-
 	req.Header.Set("x-amz-meta-language", language)
 	req.Header.Set("x-amz-meta-instructions", instructions)
+	req.Header.Set("x-amz-meta-user-email", userEmail)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

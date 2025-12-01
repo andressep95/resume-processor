@@ -100,11 +100,21 @@ func (a *AuthMiddleware) ValidateJWT() fiber.Handler {
 			})
 		}
 
-		log.Printf("✅ Token validado - Subject: %s, Issuer: %s", token.Subject(), token.Issuer())
+			// Extraer email del token (puede estar en 'email' o 'sub')
+		userEmail := ""
+		if emailClaim, ok := token.Get("email"); ok {
+			userEmail = emailClaim.(string)
+		} else {
+			// Si no hay email, usar el subject como fallback
+			userEmail = token.Subject()
+		}
+
+		log.Printf("✅ Token validado - Email: %s, Subject: %s", userEmail, token.Subject())
 
 		// Guardar información del token en el contexto para uso posterior
 		c.Locals("user", token)
-		c.Locals("user_id", token.Subject())
+		c.Locals("user_id", userEmail)
+		c.Locals("user_subject", token.Subject())
 
 		return c.Next()
 	}

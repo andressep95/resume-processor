@@ -32,9 +32,16 @@ func (h *ResumeHandler) ProcessResumeHandler(c *fiber.Ctx) error {
 		language = "esp"
 	}
 
+	// Extraer email del token JWT (guardado por el middleware de autenticación)
+	userEmail := ""
+	if userID := c.Locals("user_id"); userID != nil {
+		userEmail = userID.(string)
+	}
+
 	response, err := h.resumeService.ProcessResume(
 		instructions,
 		language,
+		userEmail,
 		fileHeader,
 	)
 	if err != nil {

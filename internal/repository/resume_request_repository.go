@@ -56,6 +56,9 @@ func (r *ResumeRequestRepository) FindByRequestID(requestID uuid.UUID) (*domain.
 	`
 
 	var request domain.ResumeRequest
+	var s3InputURL, s3OutputURL, errorMessage sql.NullString
+	var processingTimeMs sql.NullInt64
+	
 	err := r.db.QueryRow(query, requestID).Scan(
 		&request.RequestID,
 		&request.UserID,
@@ -64,15 +67,30 @@ func (r *ResumeRequestRepository) FindByRequestID(requestID uuid.UUID) (*domain.
 		&request.FileSizeBytes,
 		&request.Language,
 		&request.Instructions,
-		&request.S3InputURL,
-		&request.S3OutputURL,
+		&s3InputURL,
+		&s3OutputURL,
 		&request.Status,
-		&request.ProcessingTimeMs,
-		&request.ErrorMessage,
+		&processingTimeMs,
+		&errorMessage,
 		&request.CreatedAt,
 		&request.UploadedAt,
 		&request.CompletedAt,
 	)
+	
+	if err == nil {
+		if s3InputURL.Valid {
+			request.S3InputURL = s3InputURL.String
+		}
+		if s3OutputURL.Valid {
+			request.S3OutputURL = s3OutputURL.String
+		}
+		if errorMessage.Valid {
+			request.ErrorMessage = errorMessage.String
+		}
+		if processingTimeMs.Valid {
+			request.ProcessingTimeMs = processingTimeMs.Int64
+		}
+	}
 
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("solicitud no encontrada: %s", requestID)
@@ -105,6 +123,9 @@ func (r *ResumeRequestRepository) FindByUserID(userID string) ([]*domain.ResumeR
 	var requests []*domain.ResumeRequest
 	for rows.Next() {
 		var request domain.ResumeRequest
+		var s3InputURL, s3OutputURL, errorMessage sql.NullString
+		var processingTimeMs sql.NullInt64
+		
 		err := rows.Scan(
 			&request.RequestID,
 			&request.UserID,
@@ -113,11 +134,11 @@ func (r *ResumeRequestRepository) FindByUserID(userID string) ([]*domain.ResumeR
 			&request.FileSizeBytes,
 			&request.Language,
 			&request.Instructions,
-			&request.S3InputURL,
-			&request.S3OutputURL,
+			&s3InputURL,
+			&s3OutputURL,
 			&request.Status,
-			&request.ProcessingTimeMs,
-			&request.ErrorMessage,
+			&processingTimeMs,
+			&errorMessage,
 			&request.CreatedAt,
 			&request.UploadedAt,
 			&request.CompletedAt,
@@ -125,6 +146,20 @@ func (r *ResumeRequestRepository) FindByUserID(userID string) ([]*domain.ResumeR
 		if err != nil {
 			return nil, fmt.Errorf("error al escanear solicitud: %w", err)
 		}
+		
+		if s3InputURL.Valid {
+			request.S3InputURL = s3InputURL.String
+		}
+		if s3OutputURL.Valid {
+			request.S3OutputURL = s3OutputURL.String
+		}
+		if errorMessage.Valid {
+			request.ErrorMessage = errorMessage.String
+		}
+		if processingTimeMs.Valid {
+			request.ProcessingTimeMs = processingTimeMs.Int64
+		}
+		
 		requests = append(requests, &request)
 	}
 

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log"
 	"strings"
 	"time"
 
@@ -50,18 +51,27 @@ func (a *AuthMiddleware) ValidateJWT() fiber.Handler {
 		ctx := context.Background()
 		keySet, err := a.cache.Get(ctx, a.jwksURL)
 		if err != nil {
+			log.Printf("❌ Error obteniendo JWKS: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Error al obtener claves de validación",
 			})
 		}
 
-		// Validar y parsear el token
-		token, err := jwt.Parse([]byte(tokenString), jwt.WithKeySet(keySet))
+		// Validar y parsear el token (sin validar claims específicos por ahora)
+		token, err := jwt.Parse(
+			[]byte(tokenString),
+			jwt.WithKeySet(keySet),
+			jwt.WithValidate(true),
+		)
 		if err != nil {
+			log.Printf("❌ Error validando token: %v", err)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Token inválido",
+				"details": err.Error(),
 			})
 		}
+
+		log.Printf("✅ Token validado - Subject: %s, Issuer: %s", token.Subject(), token.Issuer())
 
 		// Guardar información del token en el contexto para uso posterior
 		c.Locals("user", token)

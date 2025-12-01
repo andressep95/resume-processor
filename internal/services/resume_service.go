@@ -52,6 +52,7 @@ func (s *ResumeService) ProcessResume(instructions string, language string, user
 	log.Printf("Archivo convertido a PDF exitosamente: %s (%d bytes)", pdfFilename, len(pdfBytes))
 
 	// 3. Obtener URL firmada del servicio de presigned URLs
+	log.Printf("🔑 Solicitando URL firmada - Filename: %s, Language: %s, UserEmail: %s", pdfFilename, language, userEmail)
 	presignedResp, err := s.presignedURLClient.GetUploadURL(
 		pdfFilename,
 		"application/pdf",
@@ -60,7 +61,7 @@ func (s *ResumeService) ProcessResume(instructions string, language string, user
 		userEmail,
 	)
 	if err != nil {
-		log.Printf("Error al obtener URL firmada: %v", err)
+		log.Printf("❌ Error al obtener URL firmada: %v", err)
 		return dto.ResumeProcessorResponseDTO{}, fiber.NewError(fiber.StatusInternalServerError, "Error al preparar la subida del archivo.")
 	}
 
@@ -94,6 +95,8 @@ func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte) error {
 	// No se deben enviar manualmente o la firma será inválida (403)
 	req.Header.Set("Content-Type", "application/pdf")
 
+	log.Printf("🔄 Subiendo a S3 - Size: %d bytes, Content-Type: %s", len(fileData), req.Header.Get("Content-Type"))
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -102,8 +105,10 @@ func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
+		log.Printf("❌ S3 Response Status: %d, Headers: %v", resp.StatusCode, resp.Header)
 		return fmt.Errorf("error al subir archivo a S3 (status %d)", resp.StatusCode)
 	}
 
+	log.Printf("✅ S3 Response Status: %d", resp.StatusCode)
 	return nil
 }

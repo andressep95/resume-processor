@@ -27,8 +27,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
 # Stage 2: Runtime
 FROM alpine:latest
 
-# Instalar certificados CA, zona horaria y curl para healthcheck
-RUN apk --no-cache add ca-certificates tzdata curl
+# Instalar dependencias: certificados, curl, postgresql-client para migraciones
+RUN apk --no-cache add ca-certificates tzdata curl postgresql-client
 
 # Crear usuario no-root para seguridad
 RUN addgroup -g 1000 appuser && \
@@ -38,6 +38,13 @@ WORKDIR /app
 
 # Copiar el binario compilado desde el stage de build
 COPY --from=builder /build/resume-backend-service .
+
+# Copiar migraciones
+COPY migrations ./migrations
+
+# Copiar entrypoint script
+COPY docker-entrypoint.sh .
+RUN chmod +x docker-entrypoint.sh
 
 # Cambiar propiedad al usuario no-root
 RUN chown -R appuser:appuser /app
@@ -52,6 +59,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${SERVER_PORT:-8080}/api/v1/health/ || exit 1
 
-# Comando para ejecutar la aplicación
+# Usar entrypoint para ejecutar migraciones antes de iniciar la app
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["./resume-backend-service"]
 

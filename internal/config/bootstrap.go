@@ -1,6 +1,7 @@
 package config
 
 import (
+	"database/sql"
 	"log"
 	"resume-backend-service/internal/middleware"
 	router "resume-backend-service/internal/router"
@@ -15,6 +16,7 @@ import (
 type Application struct {
 	App    *fiber.App
 	Config *Config
+	DB     *sql.DB
 }
 
 func Bootstrap() *Application {
@@ -27,6 +29,12 @@ func Bootstrap() *Application {
 	cfg := Load()
 	log.Printf("✅ Configuración cargada: Port=%s, MaxFileSize=%dMB, AuthEnabled=%v",
 		cfg.Port, cfg.MaxFileSize/(1024*1024), cfg.AuthJWKSURL != "")
+
+	// Inicializar base de datos
+	db, err := InitDatabase(cfg)
+	if err != nil {
+		log.Fatalf("❌ Error al conectar con base de datos: %v", err)
+	}
 
 	// Crear instancia de Fiber
 	app := fiber.New(fiber.Config{
@@ -46,16 +54,19 @@ func Bootstrap() *Application {
 	// Inicializar middleware de autenticación
 	authMiddleware := middleware.NewAuthMiddleware(cfg.AuthJWKSURL)
 
-	// Registrar rutas (pasar valores individuales y middleware)
-	router.SetupRoutes(app, cfg.PresignedURLServiceEndpoint, authMiddleware)
+	// Registrar rutas (pasar base de datos, configuración y middleware)
+	router.SetupRoutes(app, db, cfg.PresignedURLServiceEndpoint, authMiddleware)
 
 	return &Application{
 		App:    app,
 		Config: cfg,
+		DB:     db,
 	}
 }
 
 func (a *Application) Run() {
+	defer a.DB.Close()
+
 	if err := a.App.Listen(":" + a.Config.Port); err != nil {
 		log.Fatalf("❌ Error al iniciar el servidor: %v", err)
 	}

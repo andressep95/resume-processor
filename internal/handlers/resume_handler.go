@@ -32,13 +32,26 @@ func (h *ResumeHandler) ProcessResumeHandler(c *fiber.Ctx) error {
 		language = "esp"
 	}
 
-	// Extraer email del token JWT (guardado por el middleware de autenticación)
+	// Extraer user_id y email del token JWT (guardado por el middleware de autenticación)
+	userID := ""
 	userEmail := ""
-	if userID := c.Locals("user_id"); userID != nil {
-		userEmail = userID.(string)
+	if id := c.Locals("user_id"); id != nil {
+		userID = id.(string)
+	}
+	if email := c.Locals("user_email"); email != nil {
+		userEmail = email.(string)
+	}
+
+	// Si no hay user_id en el token, rechazar la solicitud
+	if userID == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"status":  "error",
+			"message": "No se pudo identificar al usuario.",
+		})
 	}
 
 	response, err := h.resumeService.ProcessResume(
+		userID,
 		instructions,
 		language,
 		userEmail,

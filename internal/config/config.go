@@ -21,6 +21,14 @@ type Config struct {
 
 	// Configuración de CORS
 	CORSAllowedOrigins string
+
+	// Configuración de Base de Datos
+	DatabaseHost     string
+	DatabasePort     string
+	DatabaseUser     string
+	DatabasePassword string
+	DatabaseName     string
+	DatabaseSSLMode  string
 }
 
 // Load inicializa y retorna la configuración de la aplicación, leyendo
@@ -45,6 +53,14 @@ func Load() *Config {
 
 		// 5. Orígenes permitidos para CORS (separados por coma)
 		CORSAllowedOrigins: getEnv("CORS_ALLOWED_ORIGINS", "*"),
+
+		// 6. Configuración de Base de Datos
+		DatabaseHost:     getEnv("DB_HOST", "localhost"),
+		DatabasePort:     getEnv("DB_PORT", "5432"),
+		DatabaseUser:     getEnv("DB_USER", "resume_user"),
+		DatabasePassword: getEnv("DB_PASSWORD", "resume_password"),
+		DatabaseName:     getEnv("DB_NAME", "resume_db"),
+		DatabaseSSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
 
 	return cfg

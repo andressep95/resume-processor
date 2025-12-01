@@ -9,9 +9,9 @@ type PresignedURLRequest struct {
 
 // PresignedMetadata contiene los metadatos personalizados para el archivo
 type PresignedMetadata struct {
+	RequestID    string `json:"request_id"`
 	Language     string `json:"language"`
 	Instructions string `json:"instructions"`
-	UserEmail    string `json:"user_email"`
 }
 
 // PresignedURLResponse es la respuesta del servicio de presigned URLs

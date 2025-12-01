@@ -2,11 +2,12 @@ package dto
 
 // AWSLambdaResponse es la estructura completa que envía AWS Lambda
 type AWSLambdaResponse struct {
-	InputFile          string            `json:"input_file"`
-	OutputFile         string            `json:"output_file"`
-	ProcessingTimeMs   int64             `json:"processing_time_ms"`
-	Status             string            `json:"status"`
-	StructuredData     CVProcessedData   `json:"structured_data"`
+	RequestID          string          `json:"request_id"`          // UUID de tracking (viene de metadata)
+	InputFile          string          `json:"input_file"`
+	OutputFile         string          `json:"output_file"`
+	ProcessingTimeMs   int64           `json:"processing_time_ms"`
+	Status             string          `json:"status"`
+	StructuredData     CVProcessedData `json:"structured_data"`
 }
 
 // CVProcessedData es la estructura principal que contiene los datos extraídos y procesados del CV.

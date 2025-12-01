@@ -67,8 +67,8 @@ func (s *ResumeService) ProcessResume(instructions string, language string, user
 
 	log.Printf("URL firmada obtenida exitosamente (expira en: %s)", presignedResp.ExpiresIn)
 
-	// 4. Subir el PDF a S3 usando la URL firmada (metadata ya incluida en la URL)
-	if err := s.uploadToS3(presignedResp.URL, pdfBytes); err != nil {
+	// 4. Subir el PDF a S3 usando la URL firmada con los metadatos
+	if err := s.uploadToS3(presignedResp.URL, pdfBytes, language, instructions, userEmail); err != nil {
 		log.Printf("Error al subir archivo a S3: %v", err)
 		return dto.ResumeProcessorResponseDTO{}, fiber.NewError(fiber.StatusInternalServerError, "Error al subir el archivo.")
 	}
@@ -83,17 +83,18 @@ func (s *ResumeService) ProcessResume(instructions string, language string, user
 }
 
 // uploadToS3 sube un archivo a S3 usando una URL firmada
-// Los metadatos ya están incluidos en la URL firmada por el servicio de presigned URLs
-func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte) error {
+// Los headers de metadata DEBEN coincidir exactamente con los usados al generar la presigned URL
+func (s *ResumeService) uploadToS3(presignedURL string, fileData []byte, language, instructions, userEmail string) error {
 	req, err := http.NewRequest("PUT", presignedURL, bytes.NewReader(fileData))
 	if err != nil {
 		return fmt.Errorf("error al crear request de subida: %w", err)
 	}
 
-	// Headers requeridos
-	// NOTA: Los metadatos ya están incluidos en la URL firmada por el servicio de presigned URLs
-	// No se deben enviar manualmente o la firma será inválida (403)
+	// Headers requeridos - DEBEN coincidir con los metadatos de la presigned URL
 	req.Header.Set("Content-Type", "application/pdf")
+	req.Header.Set("x-amz-meta-language", language)
+	req.Header.Set("x-amz-meta-instructions", instructions)
+	req.Header.Set("x-amz-meta-user-email", userEmail)
 
 	log.Printf("🔄 Subiendo a S3 - Size: %d bytes, Content-Type: %s", len(fileData), req.Header.Get("Content-Type"))
 

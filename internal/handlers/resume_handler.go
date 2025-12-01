@@ -32,16 +32,11 @@ func (h *ResumeHandler) ProcessResumeHandler(c *fiber.Ctx) error {
 		language = "esp"
 	}
 
-	// Extraer user_id y email del token JWT (guardado por el middleware de autenticación)
-	// El middleware guarda el email en user_id y el subject en user_subject
-	userEmail := ""
+	// Extraer user_id del token JWT (guardado por el middleware de autenticación)
+	// El middleware guarda el subject (UUID del usuario) en user_subject
 	userID := ""
-	if email := c.Locals("user_id"); email != nil {
-		userEmail = email.(string)
-		userID = email.(string) // Usar email como userID
-	}
 	if subject := c.Locals("user_subject"); subject != nil {
-		userID = subject.(string) // Preferir subject como userID si existe
+		userID = subject.(string)
 	}
 
 	// Si no hay user_id en el token, rechazar la solicitud
@@ -56,7 +51,6 @@ func (h *ResumeHandler) ProcessResumeHandler(c *fiber.Ctx) error {
 		userID,
 		instructions,
 		language,
-		userEmail,
 		fileHeader,
 	)
 	if err != nil {

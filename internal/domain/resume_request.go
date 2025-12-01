@@ -21,7 +21,6 @@ const (
 type ResumeRequest struct {
 	RequestID        uuid.UUID           `json:"request_id" db:"request_id"`
 	UserID           string              `json:"user_id" db:"user_id"`
-	UserEmail        string              `json:"user_email" db:"user_email"`
 	OriginalFilename string              `json:"original_filename" db:"original_filename"`
 	OriginalFileType string              `json:"original_file_type" db:"original_file_type"`
 	FileSizeBytes    int64               `json:"file_size_bytes" db:"file_size_bytes"`
@@ -38,11 +37,10 @@ type ResumeRequest struct {
 }
 
 // NewResumeRequest crea una nueva solicitud de procesamiento
-func NewResumeRequest(userID, userEmail, filename, fileType string, fileSize int64, language, instructions string) *ResumeRequest {
+func NewResumeRequest(userID, filename, fileType string, fileSize int64, language, instructions string) *ResumeRequest {
 	return &ResumeRequest{
 		RequestID:        uuid.New(),
 		UserID:           userID,
-		UserEmail:        userEmail,
 		OriginalFilename: filename,
 		OriginalFileType: fileType,
 		FileSizeBytes:    fileSize,

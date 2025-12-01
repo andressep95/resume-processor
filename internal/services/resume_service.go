@@ -37,7 +37,7 @@ var allowedExtensions = map[string]bool{
 	// Nota: .doc (formato antiguo) no está soportado sin LibreOffice
 }
 
-func (s *ResumeService) ProcessResume(userID string, instructions string, language string, userEmail string, fileHeader *multipart.FileHeader) (dto.ResumeProcessorResponseDTO, error) {
+func (s *ResumeService) ProcessResume(userID string, instructions string, language string, fileHeader *multipart.FileHeader) (dto.ResumeProcessorResponseDTO, error) {
 
 	// 1. Validación de Formato (Mantenido en el Service)
 	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
@@ -49,7 +49,6 @@ func (s *ResumeService) ProcessResume(userID string, instructions string, langua
 	// 2. Crear solicitud de procesamiento con request_id
 	resumeRequest := domain.NewResumeRequest(
 		userID,
-		userEmail,
 		fileHeader.Filename,
 		ext,
 		fileHeader.Size,

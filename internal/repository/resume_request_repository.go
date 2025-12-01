@@ -20,16 +20,15 @@ func NewResumeRequestRepository(db *sql.DB) *ResumeRequestRepository {
 func (r *ResumeRequestRepository) Create(request *domain.ResumeRequest) error {
 	query := `
 		INSERT INTO resume_requests (
-			request_id, user_id, user_email, original_filename, original_file_type,
+			request_id, user_id, original_filename, original_file_type,
 			file_size_bytes, language, instructions, status, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
 	_, err := r.db.Exec(
 		query,
 		request.RequestID,
 		request.UserID,
-		request.UserEmail,
 		request.OriginalFilename,
 		request.OriginalFileType,
 		request.FileSizeBytes,
@@ -49,7 +48,7 @@ func (r *ResumeRequestRepository) Create(request *domain.ResumeRequest) error {
 // FindByRequestID busca una solicitud por su request_id
 func (r *ResumeRequestRepository) FindByRequestID(requestID uuid.UUID) (*domain.ResumeRequest, error) {
 	query := `
-		SELECT request_id, user_id, user_email, original_filename, original_file_type,
+		SELECT request_id, user_id, original_filename, original_file_type,
 		       file_size_bytes, language, instructions, s3_input_url, s3_output_url,
 		       status, processing_time_ms, error_message, created_at, uploaded_at, completed_at
 		FROM resume_requests
@@ -60,7 +59,6 @@ func (r *ResumeRequestRepository) FindByRequestID(requestID uuid.UUID) (*domain.
 	err := r.db.QueryRow(query, requestID).Scan(
 		&request.RequestID,
 		&request.UserID,
-		&request.UserEmail,
 		&request.OriginalFilename,
 		&request.OriginalFileType,
 		&request.FileSizeBytes,
@@ -90,7 +88,7 @@ func (r *ResumeRequestRepository) FindByRequestID(requestID uuid.UUID) (*domain.
 // FindByUserID busca todas las solicitudes de un usuario
 func (r *ResumeRequestRepository) FindByUserID(userID string) ([]*domain.ResumeRequest, error) {
 	query := `
-		SELECT request_id, user_id, user_email, original_filename, original_file_type,
+		SELECT request_id, user_id, original_filename, original_file_type,
 		       file_size_bytes, language, instructions, s3_input_url, s3_output_url,
 		       status, processing_time_ms, error_message, created_at, uploaded_at, completed_at
 		FROM resume_requests
@@ -110,7 +108,6 @@ func (r *ResumeRequestRepository) FindByUserID(userID string) ([]*domain.ResumeR
 		err := rows.Scan(
 			&request.RequestID,
 			&request.UserID,
-			&request.UserEmail,
 			&request.OriginalFilename,
 			&request.OriginalFileType,
 			&request.FileSizeBytes,

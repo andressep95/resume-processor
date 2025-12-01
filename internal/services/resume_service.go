@@ -52,13 +52,14 @@ func (s *ResumeService) ProcessResume(instructions string, language string, user
 	log.Printf("Archivo convertido a PDF exitosamente: %s (%d bytes)", pdfFilename, len(pdfBytes))
 
 	// 3. Obtener URL firmada del servicio de presigned URLs
-	log.Printf("🔑 Solicitando URL firmada - Filename: %s, Language: %s, UserEmail: %s", pdfFilename, language, userEmail)
+	// TEMPORAL: No enviar userEmail hasta que el servicio de presigned URLs lo soporte
+	log.Printf("🔑 Solicitando URL firmada - Filename: %s, Language: %s, UserEmail: %s (no enviado aún)", pdfFilename, language, userEmail)
 	presignedResp, err := s.presignedURLClient.GetUploadURL(
 		pdfFilename,
 		"application/pdf",
 		language,
 		instructions,
-		userEmail,
+		"", // userEmail temporalmente vacío hasta que el servicio lo soporte
 	)
 	if err != nil {
 		log.Printf("❌ Error al obtener URL firmada: %v", err)

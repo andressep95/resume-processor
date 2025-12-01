@@ -39,6 +39,8 @@ paths:
         una confirmación 202 Accepted.
       tags:
         - Resume Processing
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -108,6 +110,64 @@ paths:
                     message: "Formato de archivo no permitido. Permite: .pdf, .txt, .docx"
         '500':
           description: Error interno del servidor
+
+  /resume/my-resumes:
+    get:
+      summary: Obtener listado de CVs del usuario
+      description: Retorna un listado resumido de todos los CVs procesados por el usuario autenticado
+      tags:
+        - Resume Processing
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Listado de CVs obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeListResponse'
+        '401':
+          description: No autenticado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Usuario no autenticado
+
+  /resume/{request_id}:
+    get:
+      summary: Obtener detalle completo de un CV
+      description: Retorna toda la información de un CV procesado incluyendo datos estructurados
+      tags:
+        - Resume Processing
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID único de la solicitud de procesamiento
+      responses:
+        '200':
+          description: Detalle del CV obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeDetail'
+        '400':
+          description: Request ID inválido
+        '401':
+          description: No autenticado
+        '403':
+          description: No tienes permiso para ver este CV
+        '404':
+          description: CV no encontrado
 
   /resume/results:
     post:
@@ -339,3 +399,100 @@ components:
           items:
             type: string
           description: Lista de habilidades técnicas
+
+    ResumeListResponse:
+      type: object
+      description: Respuesta con listado de CVs del usuario
+      properties:
+        total:
+          type: integer
+          description: Número total de CVs
+          example: 2
+        resumes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResumeListItem'
+
+    ResumeListItem:
+      type: object
+      description: Item resumido de un CV en el listado
+      properties:
+        request_id:
+          type: string
+          format: uuid
+          description: ID único de la solicitud
+        original_filename:
+          type: string
+          description: Nombre del archivo original
+          example: "cv.pdf"
+        status:
+          type: string
+          enum: [pending, uploaded, processing, completed, failed]
+          description: Estado del procesamiento
+        created_at:
+          type: string
+          format: date-time
+          description: Fecha de creación
+        completed_at:
+          type: string
+          format: date-time
+          description: Fecha de completado (si aplica)
+        full_name:
+          type: string
+          description: Nombre extraído del CV (si está completado)
+          example: "Andres Sepulveda"
+        email:
+          type: string
+          format: email
+          description: Email extraído del CV (si está completado)
+          example: "andressep.95@gmail.com"
+
+    ResumeDetail:
+      type: object
+      description: Detalle completo de un CV procesado
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        original_filename:
+          type: string
+        original_file_type:
+          type: string
+          example: ".pdf"
+        file_size_bytes:
+          type: integer
+          example: 3471
+        language:
+          type: string
+          example: "es"
+        instructions:
+          type: string
+        status:
+          type: string
+          enum: [pending, uploaded, processing, completed, failed]
+        s3_input_url:
+          type: string
+        s3_output_url:
+          type: string
+        processing_time_ms:
+          type: integer
+        error_message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        uploaded_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+        structured_data:
+          $ref: '#/components/schemas/CVProcessedData'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtenido del servicio de autenticación

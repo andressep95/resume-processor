@@ -33,12 +33,15 @@ func SetupRoutes(app *fiber.App, db *sql.DB, presignedURLEndpoint string, authMi
 	// Inicializar handlers con dependencias
 	resumeHandler := handlers.NewResumeHandler(resumeService)
 	awsHandler := handlers.NewAWSHandler(resumeRequestRepo, processedResumeRepo)
+	resumeListHandler := handlers.NewResumeListHandler(resumeRequestRepo, processedResumeRepo)
 
 	// CV Processor routes
 	resume := api.Group("/resume")
 
-	// Endpoint protegido (requiere autenticación de usuario)
+	// Endpoints protegidos (requieren autenticación de usuario)
 	resume.Post("/", authMiddleware.ValidateJWT(), resumeHandler.ProcessResumeHandler)
+	resume.Get("/my-resumes", authMiddleware.ValidateJWT(), resumeListHandler.GetMyResumes)
+	resume.Get("/:request_id", authMiddleware.ValidateJWT(), resumeListHandler.GetResumeDetail)
 
 	// Endpoint público (callback de AWS Lambda)
 	resume.Post("/results", awsHandler.ProcessResumeResultsHandler)

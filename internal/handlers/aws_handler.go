@@ -6,6 +6,7 @@ import (
 	"resume-backend-service/internal/domain"
 	"resume-backend-service/internal/dto"
 	"resume-backend-service/internal/repository"
+	"resume-backend-service/pkg/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -98,26 +99,53 @@ func (h *AWSHandler) ProcessResumeResultsHandler(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(response)
 	}
 
-	// 5. Log del JSON parseado de forma legible
-	jsonPretty, _ := json.MarshalIndent(lambdaResponse.StructuredData, "", "  ")
+	// 5. Sanitizar fechas en certificaciones
+	structuredDataMap, err := utils.SanitizeStructuredData(lambdaResponse.StructuredData)
+	if err != nil {
+		log.Printf("❌ Error al sanitizar datos estructurados: %v", err)
+		h.resumeRequestRepo.MarkAsFailed(requestID, "Error al sanitizar datos estructurados")
+
+		response := dto.AWSProcessResponse{
+			Status:  "error",
+			Message: "Error al sanitizar datos estructurados.",
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response)
+	}
+
+	// Convertir de vuelta a la estructura tipada
+	structuredDataBytes, _ := json.Marshal(structuredDataMap)
+	var sanitizedStructuredData dto.CVProcessedData
+	if err := json.Unmarshal(structuredDataBytes, &sanitizedStructuredData); err != nil {
+		log.Printf("❌ Error al convertir datos sanitizados: %v", err)
+		h.resumeRequestRepo.MarkAsFailed(requestID, "Error al convertir datos sanitizados")
+
+		response := dto.AWSProcessResponse{
+			Status:  "error",
+			Message: "Error al convertir datos sanitizados.",
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response)
+	}
+
+	// 6. Log del JSON parseado de forma legible
+	jsonPretty, _ := json.MarshalIndent(sanitizedStructuredData, "", "  ")
 	log.Printf("✅ CV procesado correctamente:")
 	log.Printf("   🆔 Request ID: %s", requestID)
 	log.Printf("   👤 User ID: %s", resumeRequest.UserID)
 	log.Printf("   📄 Input: %s", lambdaResponse.InputFile)
 	log.Printf("   📄 Output: %s", lambdaResponse.OutputFile)
 	log.Printf("   ⏱️  Tiempo: %dms", lambdaResponse.ProcessingTimeMs)
-	log.Printf("   👤 Nombre: %s", lambdaResponse.StructuredData.Header.Name)
-	log.Printf("   📧 Email: %s", lambdaResponse.StructuredData.Header.Contact.Email)
-	log.Printf("   📞 Teléfono: %s", lambdaResponse.StructuredData.Header.Contact.Phone)
-	log.Printf("   🎓 Educación: %d registros", len(lambdaResponse.StructuredData.Education))
-	log.Printf("   💼 Experiencia: %d registros", len(lambdaResponse.StructuredData.ProfessionalExperience))
-	log.Printf("   🏆 Certificaciones: %d registros", len(lambdaResponse.StructuredData.Certifications))
-	log.Printf("   🚀 Proyectos: %d registros", len(lambdaResponse.StructuredData.Projects))
-	log.Printf("   🛠️  Skills: %d registros", len(lambdaResponse.StructuredData.TechnicalSkills.Skills))
+	log.Printf("   👤 Nombre: %s", sanitizedStructuredData.Header.Name)
+	log.Printf("   📧 Email: %s", sanitizedStructuredData.Header.Contact.Email)
+	log.Printf("   📞 Teléfono: %s", sanitizedStructuredData.Header.Contact.Phone)
+	log.Printf("   🎓 Educación: %d registros", len(sanitizedStructuredData.Education))
+	log.Printf("   💼 Experiencia: %d registros", len(sanitizedStructuredData.ProfessionalExperience))
+	log.Printf("   🏆 Certificaciones: %d registros", len(sanitizedStructuredData.Certifications))
+	log.Printf("   🚀 Proyectos: %d registros", len(sanitizedStructuredData.Projects))
+	log.Printf("   🛠️  Skills: %d registros", len(sanitizedStructuredData.TechnicalSkills.Skills))
 	log.Printf("\n📋 Datos completos:\n%s", string(jsonPretty))
 
-	// 6. Guardar CV procesado en la base de datos
-	processedResume, err := domain.NewProcessedResume(requestID, resumeRequest.UserID, &lambdaResponse.StructuredData)
+	// 7. Guardar CV procesado en la base de datos
+	processedResume, err := domain.NewProcessedResume(requestID, resumeRequest.UserID, &sanitizedStructuredData)
 	if err != nil {
 		log.Printf("❌ Error al crear ProcessedResume: %v", err)
 		h.resumeRequestRepo.MarkAsFailed(requestID, "Error al procesar datos estructurados")
@@ -142,7 +170,7 @@ func (h *AWSHandler) ProcessResumeResultsHandler(c *fiber.Ctx) error {
 
 	log.Printf("✅ CV procesado guardado en BD: resume_id=%d", processedResume.ID)
 
-	// 7. Marcar solicitud como completada
+	// 8. Marcar solicitud como completada
 	if err := h.resumeRequestRepo.MarkAsCompleted(requestID, lambdaResponse.OutputFile, lambdaResponse.ProcessingTimeMs); err != nil {
 		log.Printf("⚠️  Error al marcar solicitud como completada: %v", err)
 		// No fallar la operación, solo log

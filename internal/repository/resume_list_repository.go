@@ -24,7 +24,7 @@ func (r *ResumeRequestRepository) GetUserResumes(userID string) ([]ResumeListIte
 			rr.status,
 			rr.created_at,
 			rr.completed_at,
-			rv.structured_data->>'header'->>'name' as full_name,
+			rv.structured_data->'header'->>'name' as full_name,
 			rv.structured_data->'header'->'contact'->>'email' as email
 		FROM resume_requests rr
 		LEFT JOIN processed_resumes pr ON rr.request_id = pr.request_id

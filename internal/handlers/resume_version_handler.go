@@ -59,11 +59,26 @@ func (h *ResumeVersionHandler) GetVersions(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"status":   "success",
-		"versions": versions,
-		"total":    len(versions),
-	})
+	// Convertir a DTO
+	versionItems := make([]dto.VersionListItem, len(versions))
+	for i, v := range versions {
+		versionItems[i] = dto.VersionListItem{
+			ID:            v.ID,
+			RequestID:     v.RequestID.String(),
+			VersionNumber: v.VersionNumber,
+			VersionName:   v.VersionName,
+			CreatedBy:     v.CreatedBy,
+			CreatedAt:     v.CreatedAt,
+		}
+	}
+
+	response := dto.VersionListResponse{
+		Status:   "success",
+		Total:    len(versions),
+		Versions: versionItems,
+	}
+
+	return c.JSON(response)
 }
 
 // CreateVersion crea una nueva versión del CV
@@ -96,10 +111,7 @@ func (h *ResumeVersionHandler) CreateVersion(c *fiber.Ctx) error {
 	}
 
 	// Parsear el body
-	var req struct {
-		StructuredData dto.CVProcessedData `json:"structured_data"`
-		VersionName    string              `json:"version_name"`
-	}
+	var req dto.CreateVersionRequest
 
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -123,11 +135,13 @@ func (h *ResumeVersionHandler) CreateVersion(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"status":     "success",
-		"message":    "Versión creada correctamente",
-		"version_id": versionID,
-	})
+	response := dto.CreateVersionResponse{
+		Status:    "success",
+		Message:   "Versión creada correctamente",
+		VersionID: versionID,
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
 
 // ActivateVersion activa una versión específica
@@ -222,13 +236,15 @@ func (h *ResumeVersionHandler) GetVersionDetail(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
-		"status":          "success",
-		"version_id":      version.ID,
-		"version_number":  version.VersionNumber,
-		"version_name":    version.VersionName,
-		"created_by":      version.CreatedBy,
-		"created_at":      version.CreatedAt,
-		"structured_data": structuredData,
-	})
+	response := dto.VersionDetail{
+		Status:         "success",
+		VersionID:      version.ID,
+		VersionNumber:  version.VersionNumber,
+		VersionName:    version.VersionName,
+		CreatedBy:      version.CreatedBy,
+		CreatedAt:      version.CreatedAt,
+		StructuredData: structuredData,
+	}
+
+	return c.JSON(response)
 }

@@ -49,6 +49,7 @@ func SetupRoutes(app *fiber.App, db *sql.DB, presignedURLEndpoint string, authMi
 	resume.Get("/:request_id/versions", authMiddleware.ValidateJWT(), resumeVersionHandler.GetVersions)
 	resume.Post("/:request_id/versions", authMiddleware.ValidateJWT(), resumeVersionHandler.CreateVersion)
 	resume.Put("/:request_id/versions/:version_id/activate", authMiddleware.ValidateJWT(), resumeVersionHandler.ActivateVersion)
+	resume.Delete("/versions/:version_id", authMiddleware.ValidateJWT(), resumeVersionHandler.DeleteVersion)
 	resume.Get("/versions/:version_id", authMiddleware.ValidateJWT(), resumeVersionHandler.GetVersionDetail)
 
 	// Endpoint público (callback de AWS Lambda)

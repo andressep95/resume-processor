@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"resume-backend-service/internal/dto"
 	"resume-backend-service/internal/repository"
@@ -247,4 +248,38 @@ func (h *ResumeVersionHandler) GetVersionDetail(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(response)
+}
+
+// DeleteVersion elimina (soft delete) una versión específica
+func (h *ResumeVersionHandler) DeleteVersion(c *fiber.Ctx) error {
+	versionIDStr := c.Params("version_id")
+	versionID, err := strconv.ParseInt(versionIDStr, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Version ID inválido",
+		})
+	}
+
+	userID := c.Locals("user_subject").(string)
+
+	// Eliminar versión (soft delete)
+	err = h.resumeVersionRepo.SoftDeleteVersion(versionID, userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Versión no encontrada o no se puede eliminar",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Error al eliminar versión",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"status":  "success",
+		"message": "Versión eliminada correctamente",
+	})
 }

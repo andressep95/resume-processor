@@ -50,13 +50,13 @@ func (r *ResumeVersionRepository) ActivateVersion(requestID uuid.UUID, versionID
 	return nil
 }
 
-// GetVersionsByRequestID obtiene todas las versiones de un CV
+// GetVersionsByRequestID obtiene todas las versiones activas de un CV
 func (r *ResumeVersionRepository) GetVersionsByRequestID(requestID uuid.UUID) ([]*domain.ResumeVersion, error) {
 	query := `
 		SELECT id, request_id, user_id, version_number, structured_data, 
-		       COALESCE(version_name, ''), created_by, created_at
+		       COALESCE(version_name, ''), created_by, status, created_at
 		FROM resume_versions 
-		WHERE request_id = $1 
+		WHERE request_id = $1 AND status = 'active'
 		ORDER BY version_number DESC`
 	
 	rows, err := r.db.Query(query, requestID)
@@ -76,6 +76,7 @@ func (r *ResumeVersionRepository) GetVersionsByRequestID(requestID uuid.UUID) ([
 			&version.StructuredData,
 			&version.VersionName,
 			&version.CreatedBy,
+			&version.Status,
 			&version.CreatedAt,
 		)
 		if err != nil {
@@ -87,13 +88,13 @@ func (r *ResumeVersionRepository) GetVersionsByRequestID(requestID uuid.UUID) ([
 	return versions, rows.Err()
 }
 
-// GetVersionByID obtiene una versión específica por ID
+// GetVersionByID obtiene una versión específica por ID (solo activas)
 func (r *ResumeVersionRepository) GetVersionByID(versionID int64) (*domain.ResumeVersion, error) {
 	query := `
 		SELECT id, request_id, user_id, version_number, structured_data, 
-		       COALESCE(version_name, ''), created_by, created_at
+		       COALESCE(version_name, ''), created_by, status, created_at
 		FROM resume_versions 
-		WHERE id = $1`
+		WHERE id = $1 AND status = 'active'`
 	
 	version := &domain.ResumeVersion{}
 	err := r.db.QueryRow(query, versionID).Scan(
@@ -104,6 +105,7 @@ func (r *ResumeVersionRepository) GetVersionByID(versionID int64) (*domain.Resum
 		&version.StructuredData,
 		&version.VersionName,
 		&version.CreatedBy,
+		&version.Status,
 		&version.CreatedAt,
 	)
 	
@@ -112,4 +114,21 @@ func (r *ResumeVersionRepository) GetVersionByID(versionID int64) (*domain.Resum
 	}
 	
 	return version, nil
+}
+
+// SoftDeleteVersion marca una versión como eliminada
+func (r *ResumeVersionRepository) SoftDeleteVersion(versionID int64, userID string) error {
+	query := `SELECT soft_delete_resume_version($1, $2)`
+	var success bool
+	
+	err := r.db.QueryRow(query, versionID, userID).Scan(&success)
+	if err != nil {
+		return err
+	}
+	
+	if !success {
+		return sql.ErrNoRows
+	}
+	
+	return nil
 }

@@ -17,6 +17,7 @@ type ResumeVersion struct {
 	StructuredData json.RawMessage `json:"structured_data" db:"structured_data"`
 	VersionName    string          `json:"version_name" db:"version_name"`
 	CreatedBy      string          `json:"created_by" db:"created_by"`
+	Status         string          `json:"status" db:"status"`
 	CreatedAt      time.Time       `json:"created_at" db:"created_at"`
 }
 

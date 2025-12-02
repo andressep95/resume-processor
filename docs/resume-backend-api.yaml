@@ -174,6 +174,152 @@ paths:
         '404':
           description: CV no encontrado
 
+  /resume/{request_id}/versions:
+    get:
+      summary: Obtener todas las versiones de un CV
+      description: Retorna el historial completo de versiones de un CV específico
+      tags:
+        - Resume Versioning
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID único de la solicitud de procesamiento
+      responses:
+        '200':
+          description: Listado de versiones obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionListResponse'
+        '400':
+          description: Request ID inválido
+        '401':
+          description: No autenticado
+        '403':
+          description: No tienes acceso a este CV
+        '404':
+          description: CV no encontrado
+    post:
+      summary: Crear nueva versión de un CV
+      description: Crea una nueva versión del CV con datos estructurados modificados
+      tags:
+        - Resume Versioning
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID único de la solicitud de procesamiento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVersionRequest'
+      responses:
+        '201':
+          description: Versión creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateVersionResponse'
+        '400':
+          description: Datos inválidos
+        '401':
+          description: No autenticado
+        '403':
+          description: No tienes acceso a este CV
+        '404':
+          description: CV no encontrado
+
+  /resume/{request_id}/versions/{version_id}/activate:
+    put:
+      summary: Activar una versión específica
+      description: Establece una versión como la versión activa del CV
+      tags:
+        - Resume Versioning
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: request_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID único de la solicitud de procesamiento
+        - name: version_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID de la versión a activar
+      responses:
+        '200':
+          description: Versión activada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Versión activada correctamente
+        '400':
+          description: IDs inválidos
+        '401':
+          description: No autenticado
+        '403':
+          description: No tienes acceso a este CV
+        '404':
+          description: CV o versión no encontrada
+
+  /resume/versions/{version_id}:
+    get:
+      summary: Obtener detalle de una versión específica
+      description: Retorna los datos estructurados completos de una versión específica
+      tags:
+        - Resume Versioning
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: version_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID de la versión
+      responses:
+        '200':
+          description: Detalle de la versión obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionDetail'
+        '400':
+          description: Version ID inválido
+        '401':
+          description: No autenticado
+        '403':
+          description: No tienes acceso a esta versión
+        '404':
+          description: Versión no encontrada
+
   /resume/results:
     post:
       summary: Recibir resultados de CV procesado (Webhook/Callback)
@@ -496,6 +642,110 @@ components:
           type: string
           format: date-time
         completed_at:
+          type: string
+          format: date-time
+        structured_data:
+          $ref: '#/components/schemas/CVProcessedData'
+
+    VersionListResponse:
+      type: object
+      description: Respuesta con listado de versiones de un CV
+      properties:
+        status:
+          type: string
+          example: success
+        total:
+          type: integer
+          description: Número total de versiones
+          example: 3
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/VersionListItem'
+
+    VersionListItem:
+      type: object
+      description: Item resumido de una versión en el listado
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID único de la versión
+          example: 1
+        request_id:
+          type: string
+          format: uuid
+          description: ID de la solicitud original
+        version_number:
+          type: integer
+          description: Número de versión secuencial
+          example: 1
+        version_name:
+          type: string
+          description: Nombre descriptivo de la versión
+          example: "Versión inicial"
+        created_by:
+          type: string
+          enum: [system, user]
+          description: Quién creó la versión
+          example: system
+        created_at:
+          type: string
+          format: date-time
+          description: Fecha de creación de la versión
+
+    CreateVersionRequest:
+      type: object
+      description: Datos para crear una nueva versión
+      properties:
+        structured_data:
+          $ref: '#/components/schemas/CVProcessedData'
+        version_name:
+          type: string
+          description: Nombre descriptivo para la nueva versión
+          example: "Actualización de skills"
+      required:
+        - structured_data
+        - version_name
+
+    CreateVersionResponse:
+      type: object
+      description: Respuesta al crear una nueva versión
+      properties:
+        status:
+          type: string
+          example: success
+        message:
+          type: string
+          example: Versión creada correctamente
+        version_id:
+          type: integer
+          format: int64
+          description: ID de la nueva versión creada
+          example: 4
+
+    VersionDetail:
+      type: object
+      description: Detalle completo de una versión específica
+      properties:
+        status:
+          type: string
+          example: success
+        version_id:
+          type: integer
+          format: int64
+          example: 1
+        version_number:
+          type: integer
+          example: 1
+        version_name:
+          type: string
+          example: "Versión inicial"
+        created_by:
+          type: string
+          enum: [system, user]
+          example: system
+        created_at:
           type: string
           format: date-time
         structured_data:

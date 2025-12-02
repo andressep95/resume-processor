@@ -139,13 +139,11 @@ func (h *ResumeListHandler) GetResumeDetail(c *fiber.Ctx) error {
 
 	// Si está completado, obtener datos estructurados
 	if request.Status == "completed" {
-		processedResume, err := h.processedResumeRepo.FindByRequestID(requestID)
-		if err == nil && processedResume != nil {
-			structuredData, err := processedResume.GetStructuredData()
-			if err == nil {
-				detail.StructuredData = structuredData
-			}
-		}
+		// TODO: Implementar obtención de datos estructurados desde versión activa
+		// processedResume, err := h.processedResumeRepo.FindByRequestID(requestID)
+		// if err == nil && processedResume != nil {
+		//     // Obtener versión activa y sus datos estructurados
+		// }
 	}
 
 	return c.JSON(detail)

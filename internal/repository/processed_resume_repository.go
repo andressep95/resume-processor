@@ -16,14 +16,11 @@ func NewProcessedResumeRepository(db *sql.DB) *ProcessedResumeRepository {
 	return &ProcessedResumeRepository{db: db}
 }
 
-// Create crea un nuevo CV procesado
+// Create crea un nuevo CV procesado (simplificado)
 func (r *ProcessedResumeRepository) Create(resume *domain.ProcessedResume) error {
 	query := `
-		INSERT INTO processed_resumes (
-			request_id, user_id, structured_data, cv_name, cv_email, cv_phone,
-			education_count, experience_count, certifications_count, projects_count, skills_count,
-			created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		INSERT INTO processed_resumes (request_id, user_id, active_version_id, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id
 	`
 
@@ -31,15 +28,7 @@ func (r *ProcessedResumeRepository) Create(resume *domain.ProcessedResume) error
 		query,
 		resume.RequestID,
 		resume.UserID,
-		resume.StructuredData,
-		resume.CVName,
-		resume.CVEmail,
-		resume.CVPhone,
-		resume.EducationCount,
-		resume.ExperienceCount,
-		resume.CertificationsCount,
-		resume.ProjectsCount,
-		resume.SkillsCount,
+		resume.ActiveVersionID,
 		resume.CreatedAt,
 		resume.UpdatedAt,
 	).Scan(&resume.ID)
@@ -54,9 +43,7 @@ func (r *ProcessedResumeRepository) Create(resume *domain.ProcessedResume) error
 // FindByRequestID busca un CV procesado por su request_id
 func (r *ProcessedResumeRepository) FindByRequestID(requestID uuid.UUID) (*domain.ProcessedResume, error) {
 	query := `
-		SELECT id, request_id, user_id, structured_data, cv_name, cv_email, cv_phone,
-		       education_count, experience_count, certifications_count, projects_count, skills_count,
-		       created_at, updated_at
+		SELECT id, request_id, user_id, active_version_id, created_at, updated_at
 		FROM processed_resumes
 		WHERE request_id = $1
 	`
@@ -66,15 +53,7 @@ func (r *ProcessedResumeRepository) FindByRequestID(requestID uuid.UUID) (*domai
 		&resume.ID,
 		&resume.RequestID,
 		&resume.UserID,
-		&resume.StructuredData,
-		&resume.CVName,
-		&resume.CVEmail,
-		&resume.CVPhone,
-		&resume.EducationCount,
-		&resume.ExperienceCount,
-		&resume.CertificationsCount,
-		&resume.ProjectsCount,
-		&resume.SkillsCount,
+		&resume.ActiveVersionID,
 		&resume.CreatedAt,
 		&resume.UpdatedAt,
 	)
@@ -90,49 +69,16 @@ func (r *ProcessedResumeRepository) FindByRequestID(requestID uuid.UUID) (*domai
 	return &resume, nil
 }
 
-// FindByUserID busca todos los CVs procesados de un usuario
-func (r *ProcessedResumeRepository) FindByUserID(userID string) ([]*domain.ProcessedResume, error) {
-	query := `
-		SELECT id, request_id, user_id, structured_data, cv_name, cv_email, cv_phone,
-		       education_count, experience_count, certifications_count, projects_count, skills_count,
-		       created_at, updated_at
-		FROM processed_resumes
-		WHERE user_id = $1
-		ORDER BY created_at DESC
-	`
-
-	rows, err := r.db.Query(query, userID)
+// UpdateActiveVersion actualiza la versión activa de un CV
+func (r *ProcessedResumeRepository) UpdateActiveVersion(requestID uuid.UUID, versionID int64) error {
+	query := `UPDATE processed_resumes SET active_version_id = $1, updated_at = CURRENT_TIMESTAMP WHERE request_id = $2`
+	
+	_, err := r.db.Exec(query, versionID, requestID)
 	if err != nil {
-		return nil, fmt.Errorf("error al buscar CVs del usuario: %w", err)
+		return fmt.Errorf("error al actualizar versión activa: %w", err)
 	}
-	defer rows.Close()
-
-	var resumes []*domain.ProcessedResume
-	for rows.Next() {
-		var resume domain.ProcessedResume
-		err := rows.Scan(
-			&resume.ID,
-			&resume.RequestID,
-			&resume.UserID,
-			&resume.StructuredData,
-			&resume.CVName,
-			&resume.CVEmail,
-			&resume.CVPhone,
-			&resume.EducationCount,
-			&resume.ExperienceCount,
-			&resume.CertificationsCount,
-			&resume.ProjectsCount,
-			&resume.SkillsCount,
-			&resume.CreatedAt,
-			&resume.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error al escanear CV: %w", err)
-		}
-		resumes = append(resumes, &resume)
-	}
-
-	return resumes, nil
+	
+	return nil
 }
 
 // Delete elimina un CV procesado

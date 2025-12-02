@@ -23,6 +23,7 @@ func SetupRoutes(app *fiber.App, db *sql.DB, presignedURLEndpoint string, authMi
 	// Inicializar repositorios
 	resumeRequestRepo := repository.NewResumeRequestRepository(db)
 	processedResumeRepo := repository.NewProcessedResumeRepository(db)
+	resumeVersionRepo := repository.NewResumeVersionRepository(db)
 
 	// Inicializar clientes
 	presignedURLClient := client.NewPresignedURLClient(presignedURLEndpoint)
@@ -32,8 +33,9 @@ func SetupRoutes(app *fiber.App, db *sql.DB, presignedURLEndpoint string, authMi
 
 	// Inicializar handlers con dependencias
 	resumeHandler := handlers.NewResumeHandler(resumeService)
-	awsHandler := handlers.NewAWSHandler(resumeRequestRepo, processedResumeRepo)
+	awsHandler := handlers.NewAWSHandler(resumeRequestRepo, processedResumeRepo, resumeVersionRepo)
 	resumeListHandler := handlers.NewResumeListHandler(resumeRequestRepo, processedResumeRepo)
+	resumeVersionHandler := handlers.NewResumeVersionHandler(resumeVersionRepo, processedResumeRepo)
 
 	// CV Processor routes
 	resume := api.Group("/resume")
@@ -42,6 +44,12 @@ func SetupRoutes(app *fiber.App, db *sql.DB, presignedURLEndpoint string, authMi
 	resume.Post("/", authMiddleware.ValidateJWT(), resumeHandler.ProcessResumeHandler)
 	resume.Get("/my-resumes", authMiddleware.ValidateJWT(), resumeListHandler.GetMyResumes)
 	resume.Get("/:request_id", authMiddleware.ValidateJWT(), resumeListHandler.GetResumeDetail)
+
+	// Endpoints de versionado
+	resume.Get("/:request_id/versions", authMiddleware.ValidateJWT(), resumeVersionHandler.GetVersions)
+	resume.Post("/:request_id/versions", authMiddleware.ValidateJWT(), resumeVersionHandler.CreateVersion)
+	resume.Put("/:request_id/versions/:version_id/activate", authMiddleware.ValidateJWT(), resumeVersionHandler.ActivateVersion)
+	resume.Get("/versions/:version_id", authMiddleware.ValidateJWT(), resumeVersionHandler.GetVersionDetail)
 
 	// Endpoint público (callback de AWS Lambda)
 	resume.Post("/results", awsHandler.ProcessResumeResultsHandler)

@@ -15,12 +15,14 @@ import (
 type AWSHandler struct {
 	resumeRequestRepo   *repository.ResumeRequestRepository
 	processedResumeRepo *repository.ProcessedResumeRepository
+	resumeVersionRepo   *repository.ResumeVersionRepository
 }
 
-func NewAWSHandler(resumeRequestRepo *repository.ResumeRequestRepository, processedResumeRepo *repository.ProcessedResumeRepository) *AWSHandler {
+func NewAWSHandler(resumeRequestRepo *repository.ResumeRequestRepository, processedResumeRepo *repository.ProcessedResumeRepository, resumeVersionRepo *repository.ResumeVersionRepository) *AWSHandler {
 	return &AWSHandler{
 		resumeRequestRepo:   resumeRequestRepo,
 		processedResumeRepo: processedResumeRepo,
+		resumeVersionRepo:   resumeVersionRepo,
 	}
 }
 
@@ -144,33 +146,41 @@ func (h *AWSHandler) ProcessResumeResultsHandler(c *fiber.Ctx) error {
 	log.Printf("   🛠️  Skills: %d registros", len(sanitizedStructuredData.TechnicalSkills.Skills))
 	log.Printf("\n📋 Datos completos:\n%s", string(jsonPretty))
 
-	// 7. Guardar CV procesado en la base de datos
-	processedResume, err := domain.NewProcessedResume(requestID, resumeRequest.UserID, &sanitizedStructuredData)
-	if err != nil {
-		log.Printf("❌ Error al crear ProcessedResume: %v", err)
-		h.resumeRequestRepo.MarkAsFailed(requestID, "Error al procesar datos estructurados")
-
-		response := dto.AWSProcessResponse{
-			Status:  "error",
-			Message: "Error al procesar datos estructurados.",
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(response)
-	}
-
+	// 7. Crear CV procesado y primera versión
+	processedResume := domain.NewProcessedResume(requestID, resumeRequest.UserID)
 	if err := h.processedResumeRepo.Create(processedResume); err != nil {
-		log.Printf("❌ Error al guardar CV procesado: %v", err)
-		h.resumeRequestRepo.MarkAsFailed(requestID, "Error al guardar CV procesado en BD")
+		log.Printf("❌ Error al crear ProcessedResume: %v", err)
+		h.resumeRequestRepo.MarkAsFailed(requestID, "Error al crear CV procesado")
 
 		response := dto.AWSProcessResponse{
 			Status:  "error",
-			Message: "Error al guardar CV procesado.",
+			Message: "Error al crear CV procesado.",
 		}
 		return c.Status(fiber.StatusInternalServerError).JSON(response)
 	}
 
-	log.Printf("✅ CV procesado guardado en BD: resume_id=%d", processedResume.ID)
+	// 8. Crear primera versión del CV
+	versionID, err := h.resumeVersionRepo.CreateVersion(
+		requestID,
+		resumeRequest.UserID,
+		&sanitizedStructuredData,
+		"Versión inicial",
+		"system",
+	)
+	if err != nil {
+		log.Printf("❌ Error al crear versión inicial: %v", err)
+		h.resumeRequestRepo.MarkAsFailed(requestID, "Error al crear versión inicial")
 
-	// 8. Marcar solicitud como completada
+		response := dto.AWSProcessResponse{
+			Status:  "error",
+			Message: "Error al crear versión inicial.",
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(response)
+	}
+
+	log.Printf("✅ CV procesado guardado: resume_id=%d, version_id=%d", processedResume.ID, versionID)
+
+	// 9. Marcar solicitud como completada
 	if err := h.resumeRequestRepo.MarkAsCompleted(requestID, lambdaResponse.OutputFile, lambdaResponse.ProcessingTimeMs); err != nil {
 		log.Printf("⚠️  Error al marcar solicitud como completada: %v", err)
 		// No fallar la operación, solo log

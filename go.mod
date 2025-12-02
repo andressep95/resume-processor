@@ -10,6 +10,7 @@ require (
 	github.com/lestrrat-go/jwx/v2 v2.1.6
 	github.com/lib/pq v1.10.9
 	github.com/nguyenthenguyen/docx v0.0.0-20230621112118-9c8e795a11db
+	golang.org/x/text v0.31.0
 )
 
 require (
@@ -32,5 +33,4 @@ require (
 	github.com/valyala/tcplisten v1.0.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
 )

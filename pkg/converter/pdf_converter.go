@@ -7,6 +7,7 @@ import (
 	"mime/multipart"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/jung-kurt/gofpdf"
@@ -103,8 +104,9 @@ func convertDocxToPDF(fileHeader *multipart.FileHeader) ([]byte, string, error) 
 	}
 	defer doc.Close()
 
-	// Extraer el texto del documento
-	text := doc.Editable().GetContent()
+	// Extraer contenido y limpiar XML
+	xmlContent := doc.Editable().GetContent()
+	text := cleanXMLContent(xmlContent)
 
 	// Crear PDF con el contenido extraído
 	pdf := gofpdf.New("P", "mm", "A4", "")
@@ -164,4 +166,38 @@ func saveMultipartFile(fileHeader *multipart.FileHeader, destPath string) error 
 
 	_, err = io.Copy(dst, src)
 	return err
+}
+
+// cleanXMLContent extrae solo el texto de un contenido XML de DOCX
+func cleanXMLContent(xmlContent string) string {
+	// Dividir por párrafos <w:p>...</w:p>
+	paragraphRe := regexp.MustCompile(`<w:p[^>]*>(.*?)</w:p>`)
+	paragraphs := paragraphRe.FindAllStringSubmatch(xmlContent, -1)
+
+	var textBuilder strings.Builder
+	textRe := regexp.MustCompile(`<w:t[^>]*>([^<]*)</w:t>`)
+
+	for _, para := range paragraphs {
+		if len(para) < 2 {
+			continue
+		}
+
+		// Extraer texto del párrafo
+		textMatches := textRe.FindAllStringSubmatch(para[1], -1)
+		if len(textMatches) == 0 {
+			continue
+		}
+
+		// Concatenar texto del párrafo
+		for _, match := range textMatches {
+			if len(match) > 1 {
+				textBuilder.WriteString(match[1])
+			}
+		}
+
+		// Agregar salto de línea después de cada párrafo
+		textBuilder.WriteString("\n")
+	}
+
+	return strings.TrimSpace(textBuilder.String())
 }

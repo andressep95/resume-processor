@@ -319,6 +319,46 @@ paths:
           description: No tienes acceso a esta versión
         '404':
           description: Versión no encontrada
+    delete:
+      summary: Eliminar una versión específica (soft delete)
+      description: >
+        Marca una versión como eliminada (soft delete). La versión no se elimina físicamente
+        pero deja de ser visible. Si es la versión activa, se activa automáticamente
+        la versión más reciente. No se puede eliminar si es la única versión restante.
+      tags:
+        - Resume Versioning
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: version_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID de la versión a eliminar
+      responses:
+        '200':
+          description: Versión eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Versión eliminada correctamente
+        '400':
+          description: Version ID inválido
+        '401':
+          description: No autenticado
+        '403':
+          description: No tienes acceso a esta versión
+        '404':
+          description: Versión no encontrada o no se puede eliminar (única versión restante)
 
   /resume/results:
     post:

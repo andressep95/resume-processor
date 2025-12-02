@@ -34,7 +34,7 @@ func SetupRoutes(app *fiber.App, db *sql.DB, presignedURLEndpoint string, authMi
 	// Inicializar handlers con dependencias
 	resumeHandler := handlers.NewResumeHandler(resumeService)
 	awsHandler := handlers.NewAWSHandler(resumeRequestRepo, processedResumeRepo, resumeVersionRepo)
-	resumeListHandler := handlers.NewResumeListHandler(resumeRequestRepo, processedResumeRepo)
+	resumeListHandler := handlers.NewResumeListHandler(resumeRequestRepo, processedResumeRepo, resumeVersionRepo)
 	resumeVersionHandler := handlers.NewResumeVersionHandler(resumeVersionRepo, processedResumeRepo)
 
 	// CV Processor routes

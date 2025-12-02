@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log"
 	"resume-backend-service/internal/dto"
 	"resume-backend-service/internal/repository"
@@ -13,12 +14,14 @@ import (
 type ResumeListHandler struct {
 	resumeRequestRepo   *repository.ResumeRequestRepository
 	processedResumeRepo *repository.ProcessedResumeRepository
+	resumeVersionRepo   *repository.ResumeVersionRepository
 }
 
-func NewResumeListHandler(resumeRequestRepo *repository.ResumeRequestRepository, processedResumeRepo *repository.ProcessedResumeRepository) *ResumeListHandler {
+func NewResumeListHandler(resumeRequestRepo *repository.ResumeRequestRepository, processedResumeRepo *repository.ProcessedResumeRepository, resumeVersionRepo *repository.ResumeVersionRepository) *ResumeListHandler {
 	return &ResumeListHandler{
 		resumeRequestRepo:   resumeRequestRepo,
 		processedResumeRepo: processedResumeRepo,
+		resumeVersionRepo:   resumeVersionRepo,
 	}
 }
 
@@ -137,13 +140,20 @@ func (h *ResumeListHandler) GetResumeDetail(c *fiber.Ctx) error {
 		CompletedAt:      request.CompletedAt,
 	}
 
-	// Si está completado, obtener datos estructurados
+	// Si está completado, obtener datos estructurados desde versión activa
 	if request.Status == "completed" {
-		// TODO: Implementar obtención de datos estructurados desde versión activa
-		// processedResume, err := h.processedResumeRepo.FindByRequestID(requestID)
-		// if err == nil && processedResume != nil {
-		//     // Obtener versión activa y sus datos estructurados
-		// }
+		processedResume, err := h.processedResumeRepo.FindByRequestID(requestID)
+		if err == nil && processedResume != nil && processedResume.ActiveVersionID != nil {
+			// Obtener versión activa
+			version, err := h.resumeVersionRepo.GetVersionByID(*processedResume.ActiveVersionID)
+			if err == nil {
+				// Deserializar datos estructurados
+				var structuredData dto.CVProcessedData
+				if err := json.Unmarshal(version.StructuredData, &structuredData); err == nil {
+					detail.StructuredData = &structuredData
+				}
+			}
+		}
 	}
 
 	return c.JSON(detail)
